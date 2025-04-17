@@ -9,7 +9,92 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      analyzed_videos: {
+        Row: {
+          analysis_data: Json | null
+          comment_count: number | null
+          created_at: string | null
+          id: string
+          like_count: number | null
+          publish_date: string | null
+          thumbnail: string | null
+          title: string | null
+          updated_at: string | null
+          video_id: string
+          view_count: number | null
+          youtube_user_id: string
+        }
+        Insert: {
+          analysis_data?: Json | null
+          comment_count?: number | null
+          created_at?: string | null
+          id?: string
+          like_count?: number | null
+          publish_date?: string | null
+          thumbnail?: string | null
+          title?: string | null
+          updated_at?: string | null
+          video_id: string
+          view_count?: number | null
+          youtube_user_id: string
+        }
+        Update: {
+          analysis_data?: Json | null
+          comment_count?: number | null
+          created_at?: string | null
+          id?: string
+          like_count?: number | null
+          publish_date?: string | null
+          thumbnail?: string | null
+          title?: string | null
+          updated_at?: string | null
+          video_id?: string
+          view_count?: number | null
+          youtube_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analyzed_videos_youtube_user_id_fkey"
+            columns: ["youtube_user_id"]
+            isOneToOne: false
+            referencedRelation: "youtube_users"
+            referencedColumns: ["youtube_user_id"]
+          },
+        ]
+      }
+      youtube_users: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          picture: string | null
+          updated_at: string | null
+          youtube_user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          picture?: string | null
+          updated_at?: string | null
+          youtube_user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          picture?: string | null
+          updated_at?: string | null
+          youtube_user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

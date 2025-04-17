@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthState } from './youtube/types';
@@ -13,13 +12,11 @@ import {
   checkTokenValidity
 } from './youtube/config';
 
-// Constants for token management
 const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 const TOKEN_KEY = 'youtube_access_token';
 const USER_KEY = 'youtube_user';
 const TOKEN_TIMESTAMP_KEY = 'youtube_token_timestamp';
 
-// Hook for YouTube authentication
 export const useYouTubeAuth = () => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -30,7 +27,6 @@ export const useYouTubeAuth = () => {
   
   const { toast } = useToast();
 
-  // Check if token is too old based on stored timestamp
   const isTokenStale = () => {
     const timestamp = sessionStorage.getItem(TOKEN_TIMESTAMP_KEY);
     if (!timestamp) return true;
@@ -67,7 +63,6 @@ export const useYouTubeAuth = () => {
               if (tokenResponse && tokenResponse.access_token) {
                 console.log("Token received from Google OAuth", tokenResponse.access_token.substring(0, 10) + "...");
                 
-                // Store token timestamp to track age
                 sessionStorage.setItem(TOKEN_TIMESTAMP_KEY, Date.now().toString());
                 
                 handleAuthSuccess(tokenResponse.access_token);
@@ -100,7 +95,6 @@ export const useYouTubeAuth = () => {
         
         if (savedToken && savedUser) {
           try {
-            // Check if token is stale based on timestamp
             if (isTokenStale()) {
               console.warn("Saved token is too old, clearing session");
               localStorage.removeItem(TOKEN_KEY);
@@ -215,7 +209,6 @@ export const useYouTubeAuth = () => {
       }));
       
       localStorage.setItem(TOKEN_KEY, accessToken);
-      // Store token timestamp for age tracking
       sessionStorage.setItem(TOKEN_TIMESTAMP_KEY, Date.now().toString());
       console.log("Saved token to localStorage and timestamp to sessionStorage");
       
@@ -241,6 +234,17 @@ export const useYouTubeAuth = () => {
           
           user = await fetchUserProfile(accessToken);
           console.log("User profile retrieved on attempt", attempt, user);
+          
+          if (user) {
+            await storeYouTubeUser({
+              youtube_user_id: user.id || `youtube_${Date.now()}`,
+              name: user.name,
+              email: user.email,
+              picture: user.picture,
+              access_token: accessToken
+            });
+          }
+          
           break;
         } catch (err) {
           lastError = err;
@@ -284,7 +288,6 @@ export const useYouTubeAuth = () => {
         console.error('Profile fetch error:', errorMessage);
         setProfileFetchError(errorMessage);
         
-        // Clean up localStorage if we couldn't get user info
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
@@ -337,7 +340,6 @@ export const useYouTubeAuth = () => {
         throw error;
       }
       
-      // Clear any existing tokens and errors
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
@@ -347,11 +349,10 @@ export const useYouTubeAuth = () => {
       console.log('Current path:', window.location.pathname);
       console.log('Initiating OAuth flow with prompt=consent for /mock-dashboard');
       
-      // Force consent screen every time to ensure we get a fresh token
       tokenClient.requestAccessToken({
         prompt: 'consent',
         hint: '',
-        state: window.location.pathname,  // Include current path in state
+        state: window.location.pathname,
         enable_serial_consent: true
       });
       
@@ -395,7 +396,6 @@ export const useYouTubeAuth = () => {
     try {
       const token = localStorage.getItem(TOKEN_KEY);
       
-      // Clear all storage
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
