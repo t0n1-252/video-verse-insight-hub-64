@@ -24,14 +24,24 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
       const status = response.status;
       console.error(`Profile fetch failed with status: ${status}`);
       
+      // Extract error details from the response if possible
+      let errorDetails = '';
+      try {
+        const errorData = await response.json();
+        errorDetails = errorData?.error_description || errorData?.error || '';
+        console.error('Error details:', errorDetails);
+      } catch (e) {
+        // Unable to parse error response
+      }
+      
       if (status === 401) {
-        throw new Error('401: Invalid or expired access token');
+        throw new Error(`401: Invalid or expired access token. ${errorDetails}`);
       } else if (status === 403) {
-        throw new Error('403: Insufficient permissions or quota exceeded');
+        throw new Error(`403: Insufficient permissions or quota exceeded. ${errorDetails}`);
       } else if (status === 500) {
         throw new Error('500: Server error occurred, please try again later');
       } else {
-        throw new Error(`HTTP Error ${status}`);
+        throw new Error(`HTTP Error ${status}${errorDetails ? ': ' + errorDetails : ''}`);
       }
     }
     
