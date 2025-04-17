@@ -1,11 +1,11 @@
+
 import { useYouTubeAuth } from '@/lib/youtube-auth';
 import { Button } from '@/components/ui/button';
 import { ThreeDotsFade } from 'react-svg-spinners';
-import { Youtube, AlertCircle, RefreshCw, Info } from 'lucide-react';
+import { Youtube, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CLIENT_ID, REDIRECT_URI } from '@/lib/youtube/config';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface YoutubeLoginProps {
   onLoginSuccess?: () => void;
@@ -15,9 +15,8 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   const { isSignedIn, isInitializing, user, credentialsConfigured, profileFetchError, signIn, signOut } = useYouTubeAuth();
   const navigate = useNavigate();
   const [signingIn, setSigningIn] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
+  // Add this effect to trigger onLoginSuccess when isSignedIn changes to true
   useEffect(() => {
     console.log("YoutubeLogin: isSignedIn =", isSignedIn, "callback exists =", !!onLoginSuccess);
     
@@ -34,17 +33,12 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     } else {
       try {
         console.log("Attempting to sign in");
-        setAuthError(null);
         setSigningIn(true);
         await signIn();
         console.log("Sign in process initiated successfully");
+        // The onLoginSuccess will be triggered by the useEffect above when isSignedIn changes
       } catch (error) {
         console.error("Authentication error:", error);
-        if (error instanceof Error) {
-          setAuthError(error.message);
-        } else {
-          setAuthError("Unknown authentication error occurred");
-        }
         setSigningIn(false);
       }
     }
@@ -82,86 +76,39 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     );
   }
 
-  const errorToDisplay = profileFetchError || authError;
-
-  if (errorToDisplay) {
+  if (profileFetchError) {
     return (
       <div className="flex flex-col items-center justify-center p-10 space-y-6">
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Authentication Problem</AlertTitle>
-          <AlertDescription>{errorToDisplay}</AlertDescription>
+          <AlertDescription>{profileFetchError}</AlertDescription>
         </Alert>
         
         <div className="text-center space-y-4">
           <AlertCircle size={40} className="mx-auto text-red-500" />
           <h2 className="text-xl font-bold text-gray-100">Authentication Problem</h2>
           <p className="text-gray-400 max-w-md">
-            {profileFetchError 
-              ? "We couldn't retrieve your profile information. Please try signing in again."
-              : "We encountered an issue with the YouTube authentication. Please try again."}
+            We couldn't retrieve your profile information. Please try signing in again.
           </p>
-          
-          <div className="text-sm text-gray-500 mt-4 p-2 bg-gray-800 rounded-md">
-            <div className="flex justify-between items-center">
-              <p>Current origin: <span className="font-mono">{window.location.origin}</span></p>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-6 text-xs" 
-                onClick={() => setShowDebugInfo(!showDebugInfo)}
-              >
-                <Info className="h-3 w-3 mr-1" />
-                {showDebugInfo ? 'Hide Debug' : 'Show Debug'}
-              </Button>
-            </div>
-            <p>Make sure this exact URL is added to the Google Cloud Console as an authorized redirect URI.</p>
-          </div>
-          
-          {showDebugInfo && (
-            <div className="mt-4 text-left text-xs p-3 bg-gray-800 rounded-md">
-              <h3 className="font-bold mb-2">Debug Information:</h3>
-              <ul className="space-y-1">
-                <li><span className="font-semibold">Client ID:</span> {CLIENT_ID.substring(0, 8)}...{CLIENT_ID.substring(CLIENT_ID.length - 8)}</li>
-                <li><span className="font-semibold">Redirect URI:</span> {REDIRECT_URI}</li>
-                <li><span className="font-semibold">Full URL:</span> {window.location.href}</li>
-                <li><span className="font-semibold">User Agent:</span> {navigator.userAgent}</li>
-                <li><span className="font-semibold">Error Timing:</span> After success message during profile/data loading</li>
-              </ul>
-              <p className="mt-2 italic">If this issue persists, please clear your browser cache and cookies, then try again.</p>
-            </div>
-          )}
         </div>
         
-        <div className="flex space-x-4">
-          <Button
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={handleAuth}
-            disabled={signingIn}
-          >
-            {signingIn ? (
-              <>
-                <ThreeDotsFade className="mr-2" color="white" height={20} />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-5 w-5" />
-                Try Again
-              </>
-            )}
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={() => {
-              localStorage.clear();
-              window.location.reload();
-            }}
-          >
-            Clear Cache & Reload
-          </Button>
-        </div>
+        <Button
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={handleAuth}
+          disabled={signingIn}
+        >
+          {signingIn ? (
+            <>
+              <ThreeDotsFade className="mr-2" color="white" height={20} />
+              Connecting...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-5 w-5" />
+              Try Again
+            </>
+          )}
+        </Button>
       </div>
     );
   }
@@ -231,15 +178,10 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
         )}
       </Button>
       
-      <div className="text-xs text-gray-500 max-w-sm text-center space-y-2">
-        <p>
-          By connecting your account, you allow VideoVerse to access your YouTube data. 
-          We only analyze your content and never post or modify anything.
-        </p>
-        <p className="text-sm font-medium">
-          ⚠️ Make sure to add <span className="bg-gray-800 p-1 rounded">{window.location.origin}</span> to your Google Cloud Console as both an authorized JavaScript origin and redirect URI.
-        </p>
-      </div>
+      <p className="text-xs text-gray-500 max-w-sm text-center">
+        By connecting your account, you allow VideoVerse to access your YouTube data. 
+        We only analyze your content and never post or modify anything.
+      </p>
     </div>
   );
 };
