@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, User } from "lucide-react";
+import { Search, User, RefreshCw } from "lucide-react";
 import VideoAnalysis from "@/pages/VideoAnalysis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useYouTubeAuth } from "@/lib/youtube-auth";
@@ -25,26 +24,50 @@ const DashboardWithYoutube = () => {
   const { accessToken, isSignedIn, error, user } = useYouTubeAuth();
   const { toast } = useToast();
   const currentDomain = window.location.origin;
+  const [apiInitialized, setApiInitialized] = useState(false);
 
   useEffect(() => {
-    if (isSignedIn && accessToken) {
-      loadVideos();
+    if (window.gapi && !apiInitialized) {
+      if (!window.gapi.client.youtube) {
+        window.gapi.client.load('youtube', 'v3', () => {
+          console.log('YouTube API initialized in DashboardWithYoutube');
+          setApiInitialized(true);
+        });
+      } else {
+        setApiInitialized(true);
+      }
     }
-  }, [accessToken, isSignedIn]);
+  }, [apiInitialized]);
+
+  useEffect(() => {
+    if (isSignedIn && accessToken && apiInitialized) {
+      console.log('User is signed in with access token, loading videos');
+      loadVideos();
+    } else if (isSignedIn && accessToken) {
+      console.log('User is signed in but API not initialized yet');
+    }
+  }, [accessToken, isSignedIn, apiInitialized]);
 
   const loadVideos = async () => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      console.error('No access token available for loadVideos');
+      return;
+    }
     
     try {
       setLoading(true);
       setLoadError(null);
+      
+      console.log('Starting video fetch with token length:', accessToken.length);
       const videoData = await fetchChannelVideos(accessToken);
+      console.log('Video data received:', videoData.length, 'videos');
+      
       setVideos(videoData);
       
       if (videoData.length === 0) {
         toast({
           title: "No videos found",
-          description: "We couldn't find any videos in your YouTube channel.",
+          description: "We couldn't find any videos in your YouTube channel. Make sure your account has uploaded videos.",
           variant: "default"
         });
       } else {
@@ -54,17 +77,23 @@ const DashboardWithYoutube = () => {
           variant: "default"
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading videos:", error);
-      setLoadError("Failed to load videos. Please try signing out and in again.");
+      const errorMessage = error.message || "Unknown error occurred";
+      setLoadError(`Failed to load videos: ${errorMessage}`);
+      
       toast({
         title: "Error loading videos",
-        description: "There was a problem fetching your videos. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    loadVideos();
   };
 
   const handleVideoSelect = (video: Video) => {
@@ -113,7 +142,6 @@ const DashboardWithYoutube = () => {
                     alt={user.name} 
                     className="w-10 h-10 rounded-full mr-3" 
                     onError={(e) => {
-                      // If image fails to load, replace with user icon
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const parent = target.parentElement;
@@ -170,10 +198,18 @@ const DashboardWithYoutube = () => {
                   <p className="mt-4 text-gray-400">Loading your videos...</p>
                 </div>
               ) : loadError ? (
-                <Alert variant="destructive" className="mb-6">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{loadError}</AlertDescription>
-                </Alert>
+                <div>
+                  <Alert variant="destructive" className="mb-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{loadError}</AlertDescription>
+                  </Alert>
+                  <div className="flex justify-center mt-4">
+                    <Button onClick={handleRetry} className="flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4" />
+                      Retry Loading Videos
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -190,7 +226,6 @@ const DashboardWithYoutube = () => {
                               alt={video.title} 
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                // If thumbnail fails to load, replace with placeholder
                                 const target = e.target as HTMLImageElement;
                                 target.src = 'https://placehold.co/600x400/666/fff?text=No+Thumbnail';
                               }}
@@ -213,7 +248,20 @@ const DashboardWithYoutube = () => {
 
                   {filteredVideos.length === 0 && !loading && (
                     <div className="text-center py-10">
-                      <p className="text-gray-400">No videos found matching your search.</p>
+                      <p className="text-gray-400">
+                        {videos.length === 0 
+                          ? "No videos found in your channel. Try uploading some videos first!" 
+                          : "No videos found matching your search."}
+                      </p>
+                      {videos.length === 0 && (
+                        <Button 
+                          onClick={handleRetry} 
+                          className="mt-4 flex items-center gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Retry Loading Videos
+                        </Button>
+                      )}
                     </div>
                   )}
                 </>

@@ -48,27 +48,42 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
   try {
     // Validate inputs
     if (!accessToken) {
+      console.error('No access token provided to fetchChannelVideos');
       throw new Error('No access token provided');
     }
     
     // Check if gapi is loaded
     if (!window.gapi || !window.gapi.client) {
+      console.error('Google API client not loaded in fetchChannelVideos');
       throw new Error('Google API client not loaded');
     }
     
-    console.log('Fetching channel videos with access token');
+    console.log('Fetching channel videos with access token length:', accessToken.length);
     
     // Set the access token for this request
     window.gapi.client.setApiKey('');
     window.gapi.client.setToken({ access_token: accessToken });
     
+    // Initialize YouTube API if not already initialized
+    if (!window.gapi.client.youtube) {
+      console.log('Loading YouTube API...');
+      await new Promise<void>((resolve, reject) => {
+        window.gapi.client.load('youtube', 'v3', () => {
+          console.log('YouTube API loaded successfully');
+          resolve();
+        });
+      });
+    }
+    
     // Get the authenticated user's channel ID
     try {
-      console.log('Fetching user channel');
+      console.log('Fetching user channel with token');
       const channelResponse = await window.gapi.client.youtube.channels.list({
         part: 'id,snippet',
         mine: true
       });
+      
+      console.log('Channel response received:', channelResponse);
       
       if (!channelResponse.result.items || channelResponse.result.items.length === 0) {
         console.log('No channel found for the authenticated user');
@@ -88,7 +103,9 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
         type: 'video'
       });
       
-      if (!videosResponse.result.items) {
+      console.log('Videos response received:', videosResponse);
+      
+      if (!videosResponse.result.items || videosResponse.result.items.length === 0) {
         console.log('No videos found for channel');
         return [];
       }
@@ -108,6 +125,8 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
         part: 'statistics,snippet,contentDetails',
         id: videoIds.join(',')
       });
+      
+      console.log('Video details response received:', videoDetailsResponse);
       
       if (!videoDetailsResponse.result.items) {
         console.log('No video details returned');
