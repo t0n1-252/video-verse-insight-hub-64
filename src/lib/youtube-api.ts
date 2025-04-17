@@ -1,4 +1,3 @@
-
 // YouTube API service functions
 
 // Define interfaces for video types
@@ -43,6 +42,26 @@ export interface ContentOpportunity {
   confidence: number;
 }
 
+// Define a type for the gapi.client object to avoid TypeScript errors
+declare global {
+  interface Window {
+    gapi: {
+      client: {
+        init: (config: { 
+          apiKey?: string; 
+          clientId?: string; 
+          scope?: string; 
+          discoveryDocs?: string[]; 
+        }) => Promise<void>;
+        setToken: (token: { access_token: string }) => void;
+        setApiKey: (apiKey: string) => void;
+        youtube: any;
+      };
+      load: (apiName: string, callback: () => void) => void;
+    };
+  }
+}
+
 // Fetch channel videos using the browser-compatible gapi client
 export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> => {
   try {
@@ -53,7 +72,7 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     }
     
     // Check if gapi is loaded
-    if (!window.gapi || !window.gapi.client) {
+    if (!window.gapi) {
       console.error('Google API client not loaded in fetchChannelVideos');
       throw new Error('Google API client not loaded');
     }
@@ -66,25 +85,28 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     
     // Initialize YouTube API if not already initialized
     if (!window.gapi.client.youtube) {
-      console.log('Loading YouTube API...');
-      // Use gapi directly instead of client.load
+      console.log('YouTube API not initialized yet, initializing now...');
+      
       return new Promise<Video[]>((resolve, reject) => {
-        window.gapi.load('client:auth2', () => {
-          window.gapi.client.init({
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
-          }).then(async () => {
+        // Use gapi global load function
+        window.gapi.load('client', async () => {
+          try {
+            await window.gapi.client.init({
+              discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
+            });
+            
             console.log('YouTube API loaded successfully');
-            try {
-              // Now that the API is initialized, continue with fetching videos
-              const videos = await fetchVideosAfterInit(accessToken);
-              resolve(videos);
-            } catch (err) {
-              reject(err);
-            }
-          }).catch(err => {
+            
+            // Set token again after initialization
+            window.gapi.client.setToken({ access_token: accessToken });
+            
+            // Now fetch the videos
+            const videos = await fetchVideosAfterInit(accessToken);
+            resolve(videos);
+          } catch (err) {
             console.error('Error initializing YouTube API:', err);
             reject(err);
-          });
+          }
         });
       });
     }
@@ -99,6 +121,9 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
 // Helper function to fetch videos after API initialization
 const fetchVideosAfterInit = async (accessToken: string): Promise<Video[]> => {
   try {
+    // Make sure token is set before making requests
+    window.gapi.client.setToken({ access_token: accessToken });
+    
     // Get the authenticated user's channel ID
     console.log('Fetching user channel with token');
     const channelResponse = await window.gapi.client.youtube.channels.list({
