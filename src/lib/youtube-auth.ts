@@ -255,52 +255,56 @@ export const useYouTubeAuth = () => {
     
     console.log(`Attempting to fetch user profile with token length: ${accessToken.length}`);
     
-    // Use a simple GET request with the Google userinfo endpoint
     return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', 'https://www.googleapis.com/oauth2/v3/userinfo', true);
-      xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+      // Create a direct script tag to bypass CORS
+      const script = document.createElement('script');
+      const callbackName = 'handleGoogleUserProfile_' + Math.random().toString(36).substring(2, 15);
       
-      xhr.onload = function() {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const userData = JSON.parse(xhr.responseText);
-            console.log('User profile data retrieved successfully', {
-              name: userData.name ? 'present' : 'missing',
-              email: userData.email ? 'present' : 'missing',
-              picture: userData.picture ? 'present' : 'missing'
-            });
-            
-            resolve({
-              name: userData.name || 'YouTube User',
-              email: userData.email || '',
-              picture: userData.picture || ''
-            });
-          } catch (error) {
-            console.error('Error parsing user profile JSON:', error);
-            reject(new Error('Failed to parse user profile data'));
-          }
+      // Create a global callback function that Google will call
+      window[callbackName] = (response: any) => {
+        // Clean up
+        delete window[callbackName];
+        document.body.removeChild(script);
+        
+        if (response && response.name) {
+          console.log('User profile data retrieved successfully via JSONP');
+          resolve({
+            name: response.name || 'YouTube User',
+            email: response.email || '',
+            picture: response.picture || ''
+          });
+        } else if (response && response.error) {
+          console.error('Google API returned an error:', response.error);
+          reject(new Error(`API error: ${response.error.message || 'Unknown error'}`));
         } else {
-          console.error(`User profile fetch failed with status: ${xhr.status}`);
-          console.error(`Response text: ${xhr.responseText.substring(0, 200)}...`);
-          reject(new Error(`Failed to fetch user profile: ${xhr.status}`));
+          console.error('Invalid response format from Google API');
+          reject(new Error('Invalid response format'));
         }
       };
       
-      xhr.onerror = function() {
-        console.error('Network error while fetching user profile');
-        reject(new Error('Network error while fetching user profile'));
+      // Create a script URL with the callback
+      const url = `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}&callback=${callbackName}`;
+      script.src = url;
+      script.async = true;
+      script.onerror = () => {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        console.error('Script loading error for user profile fetch');
+        reject(new Error('Failed to load user profile script'));
       };
       
-      xhr.ontimeout = function() {
-        console.error('Timeout while fetching user profile');
-        reject(new Error('Request timed out'));
-      };
+      // Add the script to the document
+      document.body.appendChild(script);
       
-      // Set a longer timeout
-      xhr.timeout = 10000; // 10 seconds
-      
-      xhr.send();
+      // Set a timeout in case Google never calls our callback
+      setTimeout(() => {
+        if (window[callbackName]) {
+          delete window[callbackName];
+          document.body.removeChild(script);
+          console.error('Timeout while fetching user profile via JSONP');
+          reject(new Error('Request timed out'));
+        }
+      }, 15000); // 15 seconds timeout
     });
   };
 
@@ -348,7 +352,7 @@ export const useYouTubeAuth = () => {
           
           if (retries > 0) {
             // Increase delay between retries
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 5000)); // 5 seconds delay
           }
         }
       }
@@ -375,15 +379,20 @@ export const useYouTubeAuth = () => {
         console.error('Failed to fetch user profile after multiple attempts', lastError);
         
         // Set basic user info without profile details
+        const fallbackUser = {
+          name: 'YouTube User',
+          email: '',
+          picture: ''
+        };
+        
         setAuthState({
           isSignedIn: true,
           accessToken,
-          user: {
-            name: 'YouTube User',
-            email: '',
-            picture: ''
-          }
+          user: fallbackUser
         });
+        
+        // Store fallback user in localStorage for persistence
+        localStorage.setItem('youtube_user', JSON.stringify(fallbackUser));
         
         toast({
           title: "Connected with limited info",
@@ -398,15 +407,20 @@ export const useYouTubeAuth = () => {
       console.error('Error in handleAuthSuccess:', error);
       
       // We're still authenticated, just couldn't get user details
+      const fallbackUser = {
+        name: 'YouTube User',
+        email: '',
+        picture: ''
+      };
+      
       setAuthState({
         isSignedIn: true,
         accessToken,
-        user: {
-          name: 'YouTube User',
-          email: '',
-          picture: ''
-        }
+        user: fallbackUser
       });
+      
+      // Store fallback user in localStorage
+      localStorage.setItem('youtube_user', JSON.stringify(fallbackUser));
       
       toast({
         title: "Partially connected",
@@ -552,6 +566,7 @@ export const useYouTubeAuth = () => {
 // Add global type declarations for the Google API client
 declare global {
   interface Window {
+    [key: string]: any; // Add this to allow dynamic callback functions
     gapi: {
       load: (
         apiName: string,

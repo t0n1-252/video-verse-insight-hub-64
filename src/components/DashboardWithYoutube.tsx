@@ -112,6 +112,18 @@ const DashboardWithYoutube = () => {
                     src={user.picture} 
                     alt={user.name} 
                     className="w-10 h-10 rounded-full mr-3" 
+                    onError={(e) => {
+                      // If image fails to load, replace with user icon
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const div = document.createElement('div');
+                        div.className = 'w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center mr-3';
+                        div.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-white"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+                        parent.prepend(div);
+                      }
+                    }}
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center mr-3">
@@ -177,6 +189,11 @@ const DashboardWithYoutube = () => {
                               src={video.thumbnail} 
                               alt={video.title} 
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // If thumbnail fails to load, replace with placeholder
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://placehold.co/600x400/666/fff?text=No+Thumbnail';
+                              }}
                             />
                           </div>
                           <CardTitle className="text-lg text-gray-100">{video.title}</CardTitle>
