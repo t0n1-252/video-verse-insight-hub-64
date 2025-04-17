@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,10 +26,15 @@ const DashboardWithYoutube = () => {
   const { toast } = useToast();
   const currentDomain = window.location.origin;
 
+  // Ensure gapi client is loaded before using it
   useEffect(() => {
+    // Only load videos after we confirm the user is signed in and has an access token
     if (isSignedIn && accessToken) {
       console.log('User is signed in with access token, loading videos');
-      loadVideos();
+      // Add a small delay to ensure all APIs are fully initialized
+      setTimeout(() => {
+        loadVideos();
+      }, 1000);
     }
   }, [accessToken, isSignedIn]);
 

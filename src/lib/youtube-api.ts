@@ -1,3 +1,4 @@
+
 // YouTube API service functions
 
 // Define interfaces for video types
@@ -63,34 +64,33 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     window.gapi.client.setApiKey('');
     window.gapi.client.setToken({ access_token: accessToken });
     
-    // Initialize YouTube API if not already initialized
+    // Make sure YouTube API is properly initialized
     if (!window.gapi.client.youtube) {
-      console.log('YouTube API not initialized yet, initializing now...');
+      console.log('YouTube API not initialized yet, loading now...');
       
       return new Promise<Video[]>((resolve, reject) => {
-        // Use gapi global load function
-        window.gapi.load('client', async () => {
-          try {
-            await window.gapi.client.init({
-              discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
-            });
+        try {
+          // Initialize YouTube API client explicitly
+          window.gapi.client.load('youtube', 'v3', async () => {
+            console.log('YouTube API loaded explicitly via client.load');
             
-            console.log('YouTube API loaded successfully');
-            
-            // Set token again after initialization
-            window.gapi.client.setToken({ access_token: accessToken });
-            
-            // Now fetch the videos
-            const videos = await fetchVideosAfterInit(accessToken);
-            resolve(videos);
-          } catch (err) {
-            console.error('Error initializing YouTube API:', err);
-            reject(err);
-          }
-        });
+            // Now fetch the videos after initialization
+            try {
+              const videos = await fetchVideosAfterInit(accessToken);
+              resolve(videos);
+            } catch (err) {
+              console.error('Error fetching videos after explicit init:', err);
+              reject(err);
+            }
+          });
+        } catch (err) {
+          console.error('Error loading YouTube API explicitly:', err);
+          reject(err);
+        }
       });
     }
     
+    // If YouTube API is already initialized, fetch videos directly
     return fetchVideosAfterInit(accessToken);
   } catch (error) {
     console.error('Error fetching channel videos:', error);
