@@ -1,4 +1,6 @@
 
+import { checkTokenValidity } from './config';
+
 // Function to fetch user profile data
 export const fetchUserProfile = async (accessToken: string): Promise<{
   name: string;
@@ -13,15 +15,27 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
   console.log(`Attempting to fetch user profile with token length: ${accessToken.length}`);
   console.log(`Token first/last 5 chars: ${accessToken.substring(0, 5)}...${accessToken.substring(accessToken.length - 5)}`);
   
+  // First validate the token before attempting to use it
+  console.log('Validating token before use...');
+  const tokenStatus = await checkTokenValidity(accessToken);
+  console.log('Token validation result:', tokenStatus);
+  
+  if (!tokenStatus.isValid) {
+    console.error('Token validation failed:', tokenStatus.details);
+    throw new Error(`401: Invalid or expired access token. ${tokenStatus.details}`);
+  }
+  
   try {
-    console.log('Attempting direct user profile fetch with fetch API');
+    console.log('Token validation passed, attempting user profile fetch with fetch API');
     const apiUrl = 'https://www.googleapis.com/oauth2/v3/userinfo';
     console.log(`Fetching from: ${apiUrl}`);
     
     const response = await fetch(apiUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
-      }
+      },
+      // Disable cache to ensure we're not getting stale responses
+      cache: 'no-store'
     });
     
     if (!response.ok) {
