@@ -9,7 +9,7 @@ interface AuthRequiredProps {
 }
 
 const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
-  const { isSignedIn, isInitializing } = useYouTubeAuth();
+  const { isSignedIn, isInitializing, credentialsConfigured } = useYouTubeAuth();
 
   if (isInitializing) {
     return (
@@ -18,6 +18,10 @@ const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
         <p className="text-gray-400">Initializing YouTube connection...</p>
       </div>
     );
+  }
+
+  if (!credentialsConfigured) {
+    return <YoutubeLogin />;
   }
 
   if (!isSignedIn) {

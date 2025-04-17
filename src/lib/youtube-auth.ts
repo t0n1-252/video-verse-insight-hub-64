@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 // YouTube API OAuth 2.0 credentials
 // In a production app, these would be environment variables
@@ -28,6 +29,11 @@ const initialAuthState: AuthState = {
   user: null
 };
 
+// Check if credentials are configured
+const areCredentialsConfigured = () => {
+  return API_KEY !== 'YOUR_API_KEY' && CLIENT_ID !== 'YOUR_CLIENT_ID';
+};
+
 // Load the Google API client library
 const loadGapiClient = async () => {
   return new Promise<void>((resolve, reject) => {
@@ -37,6 +43,10 @@ const loadGapiClient = async () => {
       // Initialize the gapi.client
       window.gapi.load('client:auth2', async () => {
         try {
+          if (!areCredentialsConfigured()) {
+            throw new Error('YouTube API credentials not configured');
+          }
+          
           await window.gapi.client.init({
             apiKey: API_KEY,
             clientId: CLIENT_ID,
@@ -79,12 +89,20 @@ export const useYouTubeAuth = () => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [credentialsConfigured, setCredentialsConfigured] = useState(areCredentialsConfigured());
+  const { toast } = useToast();
 
   // Initialize Google API clients
   useEffect(() => {
     const initClients = async () => {
       try {
         setIsInitializing(true);
+        
+        if (!credentialsConfigured) {
+          console.warn('YouTube API credentials not configured. Please set up your API keys in src/lib/youtube-auth.ts');
+          setError(new Error('YouTube API credentials not configured'));
+          return;
+        }
         
         // Load both clients in parallel
         await Promise.all([loadGapiClient(), loadGisClient()]);
@@ -109,7 +127,23 @@ export const useYouTubeAuth = () => {
         }
       } catch (err) {
         console.error('Error initializing auth clients:', err);
-        setError(err as Error);
+        const error = err as Error;
+        setError(error);
+        
+        // Show toast notification for certain errors
+        if (error.message.includes('credentials not configured')) {
+          toast({
+            title: "YouTube API Setup Required",
+            description: "Please configure your YouTube API credentials. Visit the /setup page for instructions.",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('invalid_client')) {
+          toast({
+            title: "Authentication Error",
+            description: "Your YouTube API client ID is invalid. Please check your configuration.",
+            variant: "destructive",
+          });
+        }
       } finally {
         setIsInitializing(false);
       }
@@ -126,6 +160,16 @@ export const useYouTubeAuth = () => {
   // Sign in function
   const signIn = async () => {
     try {
+      if (!credentialsConfigured) {
+        const error = new Error('YouTube API credentials not configured');
+        toast({
+          title: "YouTube API Setup Required",
+          description: "Please configure your YouTube API credentials. Visit the /setup page for instructions.",
+          variant: "destructive",
+        });
+        throw error;
+      }
+      
       if (!window.gapi || !window.gapi.auth2) {
         throw new Error('Google API client not loaded');
       }
@@ -148,7 +192,18 @@ export const useYouTubeAuth = () => {
       return authResponse.access_token;
     } catch (err) {
       console.error('Error signing in:', err);
-      setError(err as Error);
+      const error = err as Error;
+      setError(error);
+      
+      // Show more specific toast for invalid client error
+      if (error.message.includes('invalid_client')) {
+        toast({
+          title: "Authentication Error",
+          description: "Your YouTube API client ID is invalid. Please check your configuration.",
+          variant: "destructive",
+        });
+      }
+      
       throw err;
     }
   };
@@ -175,6 +230,7 @@ export const useYouTubeAuth = () => {
     ...authState,
     isInitializing,
     error,
+    credentialsConfigured,
     signIn,
     signOut
   };
