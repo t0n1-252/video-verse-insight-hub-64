@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
-// Mock videos for fallback
+// Mock videos for fallback - ensure they're always available
 const MOCK_VIDEOS: Video[] = [
   {
     id: "mock1",
@@ -53,18 +53,29 @@ const DashboardWithYoutube = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [videos, setVideos] = useState<Video[]>([]); // Start with empty array
+  const [loading, setLoading] = useState(true); // Start with loading state
   const [loadError, setLoadError] = useState<string | null>(null);
   const { accessToken, isSignedIn, error, user } = useYouTubeAuth();
   const { toast } = useToast();
   const currentDomain = window.location.origin;
 
-  // Load videos when user is signed in
+  // Always initialize with mock videos when component mounts
   useEffect(() => {
+    console.log("DashboardWithYoutube mounted");
+    // Set mock videos immediately to ensure there's always content
+    if (videos.length === 0) {
+      console.log("Setting initial mock videos");
+      setVideos(MOCK_VIDEOS);
+    }
+    
+    // If user is signed in with access token, try to load real videos
     if (isSignedIn && accessToken) {
       console.log('User is signed in with access token, loading videos');
       loadVideos();
+    } else {
+      // Not signed in or no token, stop loading state
+      setLoading(false);
     }
   }, [accessToken, isSignedIn]);
 
@@ -72,6 +83,7 @@ const DashboardWithYoutube = () => {
     if (!accessToken) {
       console.error('No access token available for loadVideos');
       setLoadError('Authentication token is missing. Please try signing in again.');
+      setLoading(false);
       return;
     }
     
@@ -95,7 +107,7 @@ const DashboardWithYoutube = () => {
             variant: "default"
           });
         } else {
-          // If no videos found, use mock data
+          // If no videos found, ensure mock data is used
           console.log('No videos found from API, using mock data');
           setVideos(MOCK_VIDEOS);
           
@@ -123,7 +135,7 @@ const DashboardWithYoutube = () => {
       const errorMessage = error.message || "Unknown error occurred";
       setLoadError(`Failed to load videos: ${errorMessage}`);
       
-      // Even if outer try-catch fails, still use mock data
+      // Ensure mock videos are set even if outer try-catch fails
       console.log('Setting mock videos as final fallback');
       setVideos(MOCK_VIDEOS);
       
@@ -148,6 +160,10 @@ const DashboardWithYoutube = () => {
   const filteredVideos = videos.filter(video => 
     video.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Debug output to ensure we have videos
+  console.log("Current videos state:", videos.length, "videos");
+  console.log("Filtered videos:", filteredVideos.length, "videos");
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
@@ -257,56 +273,54 @@ const DashboardWithYoutube = () => {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredVideos.map(video => (
-                      <Card 
-                        key={video.id}
-                        className="bg-gray-800 border-gray-700 hover:border-blue-500 cursor-pointer transition-all"
-                        onClick={() => handleVideoSelect(video)}
-                      >
-                        <CardHeader className="pb-2">
-                          <div className="aspect-video bg-gray-700 mb-2 overflow-hidden">
-                            <img 
-                              src={video.thumbnail} 
-                              alt={video.title} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = 'https://placehold.co/600x400/666/fff?text=No+Thumbnail';
-                              }}
-                            />
-                          </div>
-                          <CardTitle className="text-lg text-gray-100">{video.title}</CardTitle>
-                          <CardDescription className="text-gray-400">
-                            Published: {new Date(video.publishDate).toLocaleDateString()}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-400">{video.viewCount} views</span>
-                            <span className="text-blue-400">{video.commentCount} comments</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {filteredVideos.length === 0 && !loading && (
+                  {filteredVideos.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredVideos.map(video => (
+                        <Card 
+                          key={video.id}
+                          className="bg-gray-800 border-gray-700 hover:border-blue-500 cursor-pointer transition-all"
+                          onClick={() => handleVideoSelect(video)}
+                        >
+                          <CardHeader className="pb-2">
+                            <div className="aspect-video bg-gray-700 mb-2 overflow-hidden">
+                              <img 
+                                src={video.thumbnail} 
+                                alt={video.title} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = 'https://placehold.co/600x400/666/fff?text=No+Thumbnail';
+                                }}
+                              />
+                            </div>
+                            <CardTitle className="text-lg text-gray-100">{video.title}</CardTitle>
+                            <CardDescription className="text-gray-400">
+                              Published: {new Date(video.publishDate).toLocaleDateString()}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-400">{video.viewCount} views</span>
+                              <span className="text-blue-400">{video.commentCount} comments</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
                     <div className="text-center py-10">
                       <p className="text-gray-400">
                         {videos.length === 0 
                           ? "No videos found in your channel. Try uploading some videos first!" 
                           : "No videos found matching your search."}
                       </p>
-                      {videos.length === 0 && (
-                        <Button 
-                          onClick={handleRetry} 
-                          className="mt-4 flex items-center gap-2"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                          Retry Loading Videos
-                        </Button>
-                      )}
+                      <Button 
+                        onClick={handleRetry} 
+                        className="mt-4 flex items-center gap-2"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Retry Loading Videos
+                      </Button>
                     </div>
                   )}
                 </>
