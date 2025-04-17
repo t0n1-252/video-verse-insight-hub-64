@@ -2,12 +2,14 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Copy } from 'lucide-react';
+import { ExternalLink, Copy, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const APICredentialsGuide = () => {
   const { toast } = useToast();
   const currentOrigin = window.location.origin;
+  const isPreviewDomain = currentOrigin.includes('preview--') && currentOrigin.includes('lovable.app');
 
   const copyToClipboard = (text: string, description: string) => {
     navigator.clipboard.writeText(text);
@@ -28,6 +30,18 @@ const APICredentialsGuide = () => {
       </CardHeader>
       
       <CardContent className="space-y-4">
+        {isPreviewDomain && (
+          <Alert variant="destructive" className="bg-red-900/30 border-red-700 text-white mb-4">
+            <AlertTriangle className="h-5 w-5 mr-2" />
+            <AlertDescription className="text-white">
+              <strong>Important:</strong> You are currently on a Lovable preview domain: <code className="bg-gray-700 px-1 py-0.5 rounded text-sm">{currentOrigin}</code>
+              <p className="mt-2">
+                You <strong>must</strong> add this exact URL to the authorized JavaScript origins in your Google Cloud Console.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="bg-gray-900 p-4 rounded-md">
           <h3 className="text-lg font-medium text-gray-100 mb-2">Step 1: Create a Google Cloud Project</h3>
           <ol className="list-decimal list-inside space-y-2 text-gray-300">
@@ -62,6 +76,9 @@ const APICredentialsGuide = () => {
                   <Copy size={16} />
                 </button>
               </div>
+              <div className="text-sm text-gray-400 ml-4 mt-1">
+                <strong>Important:</strong> You must add the <em>exact</em> URL shown above, including the protocol (https://) and without any trailing slash.
+              </div>
             </li>
             <li className="font-semibold text-amber-400">Add authorized redirect URIs:
               <div className="flex items-center space-x-2 ml-4 my-2 p-2 bg-gray-800 rounded">
@@ -74,7 +91,7 @@ const APICredentialsGuide = () => {
                 </button>
               </div>
               <div className="text-sm text-gray-400 ml-4 mt-1">
-                Note: For production, add your actual domain. For local development, use http://localhost:5173 or whichever port you use.
+                <strong>Note:</strong> For Lovable preview domains, use the exact preview URL shown above. The domain will change with each deployment, so update your credentials accordingly.
               </div>
             </li>
             <li>Click &quot;Create&quot; and note down your Client ID and Client Secret</li>
@@ -87,7 +104,9 @@ const APICredentialsGuide = () => {
             <li><span className="font-semibold">redirect_uri_mismatch</span>: Make sure the exact URI of this application is listed in the authorized redirect URIs</li>
             <li><span className="font-semibold">JavaScript origin mismatch</span>: Make sure the exact origin (protocol, domain, port) is listed in authorized JavaScript origins</li>
             <li><span className="font-semibold">Invalid client</span>: Make sure your client ID is correct and belongs to this project</li>
+            <li><span className="font-semibold">OAuth 2.0 policy non-compliance</span>: This means your app origin isn't correctly registered. Double-check the JavaScript origins match exactly</li>
             <li>For localhost testing, add both <code className="bg-gray-700 px-1 rounded">http://localhost:5173</code> (or your Vite port) and <code className="bg-gray-700 px-1 rounded">http://127.0.0.1:5173</code></li>
+            <li>For Lovable preview domains (like <code className="bg-gray-700 px-1 rounded">https://preview--your-app.lovable.app</code>), you need to add the full preview URL</li>
           </ul>
         </div>
         
@@ -97,21 +116,20 @@ const APICredentialsGuide = () => {
             <li>Open the file <code className="bg-gray-700 px-1 py-0.5 rounded text-sm">src/lib/youtube-auth.ts</code></li>
             <li>Replace the placeholders with your credentials:
               <pre className="bg-gray-700 p-2 rounded text-sm overflow-x-auto mt-2">
-{`const API_KEY = 'YOUR_API_KEY'; // optional
+{`const API_KEY = ''; // optional
 const CLIENT_ID = 'YOUR_CLIENT_ID';`}
               </pre>
             </li>
           </ol>
         </div>
         
-        <div className="bg-green-900/30 border border-green-700/50 p-4 rounded-md">
-          <h3 className="text-lg font-medium text-green-400 mb-2">Troubleshooting Tips</h3>
+        <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-md">
+          <h3 className="text-lg font-medium text-blue-400 mb-2">After Updating Credentials</h3>
           <ul className="list-disc list-inside space-y-2 text-gray-300">
-            <li>After adding new URIs, wait a few minutes for changes to propagate</li>
+            <li>After adding new origins or redirect URIs, <strong>wait a few minutes</strong> for changes to propagate</li>
             <li>Clear your browser cache and cookies for Google domains</li>
-            <li>Try using incognito/private browsing mode</li>
-            <li>Make sure the domain matches exactly (including http/https, and with no trailing slash)</li>
-            <li>If testing locally, ensure you're using the same port consistently</li>
+            <li>Try using incognito/private browsing mode to test</li>
+            <li>If your app is deployed to a different URL, you'll need to update the credentials for each deployment URL</li>
           </ul>
         </div>
       </CardContent>
