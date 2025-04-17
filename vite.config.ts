@@ -21,10 +21,12 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    // Provide a polyfill for Node.js process
+    // Provide more complete polyfills for Node.js process
     "process.env": {},
     "process.version": '"v16.0.0"',
     "process.platform": '"browser"',
+    "process.stdout": '{ isTTY: false, columns: 80 }',
+    "process.stderr": '{ isTTY: false }',
     global: "globalThis",
   },
 }));
