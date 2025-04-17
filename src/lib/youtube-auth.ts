@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 // YouTube API OAuth 2.0 credentials
-const API_KEY = ''; // We'll keep this empty for now, as no API key was provided
+const API_KEY = ''; // Keep as empty string
 const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.googleusercontent.com';
 const CLIENT_SECRET = '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';
 const SCOPES = [
@@ -31,7 +30,7 @@ const initialAuthState: AuthState = {
 
 // Check if credentials are configured
 const areCredentialsConfigured = () => {
-  return API_KEY !== '' && CLIENT_ID !== '';
+  return CLIENT_ID.trim() !== '';
 };
 
 // Load the Google API client library
