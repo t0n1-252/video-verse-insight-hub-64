@@ -31,12 +31,13 @@ export const useYouTubeAuth = () => {
         
         if (!credentialsConfigured) {
           console.warn('YouTube API credentials not configured. Please set up your API keys in src/lib/youtube-auth.ts');
-          setError(new Error('YouTube API credentials not configured'));
+          setIsInitializing(false);
           return;
         }
         
         // Load both clients in parallel
         await Promise.all([loadGapiClient(), loadGisClient()]);
+        console.log("Successfully loaded both API clients");
         
         // Initialize the token client
         if (window.google && window.google.accounts && window.google.accounts.oauth2) {
@@ -46,6 +47,7 @@ export const useYouTubeAuth = () => {
             redirect_uri: REDIRECT_URI, // Explicitly set the redirect URI
             callback: (tokenResponse: any) => {
               if (tokenResponse && tokenResponse.access_token) {
+                console.log("Token received from Google OAuth", tokenResponse.access_token.substring(0, 5) + "...");
                 handleAuthSuccess(tokenResponse.access_token);
               }
             },
@@ -64,6 +66,7 @@ export const useYouTubeAuth = () => {
           });
           
           setTokenClient(client);
+          console.log("Token client initialized successfully");
         } else {
           console.error('Google Identity Services not available after loading');
           setError(new Error('Google Identity Services not available'));
@@ -72,6 +75,8 @@ export const useYouTubeAuth = () => {
         // Check if user is already signed in (via localStorage)
         const savedToken = localStorage.getItem('youtube_access_token');
         const savedUser = localStorage.getItem('youtube_user');
+        
+        console.log("Checking for saved credentials:", !!savedToken, !!savedUser);
         
         if (savedToken && savedUser) {
           try {
@@ -85,18 +90,30 @@ export const useYouTubeAuth = () => {
             // Set token for API calls
             if (window.gapi && window.gapi.client) {
               window.gapi.client.setToken({ access_token: savedToken });
+              console.log("Restored token to GAPI client");
             }
             
             // Verify the token is still valid by attempting to fetch user profile
-            fetchUserProfile(savedToken).catch(() => {
-              // If profile fetch fails, token is likely expired - sign out
-              console.log('Saved token appears to be invalid - clearing auth state');
-              localStorage.removeItem('youtube_access_token');
-              localStorage.removeItem('youtube_user');
-              setAuthState(initialAuthState);
-            });
+            fetchUserProfile(savedToken)
+              .then(profile => {
+                console.log("Verified saved token is valid");
+              })
+              .catch(err => {
+                // If profile fetch fails, token is likely expired - sign out
+                console.log('Saved token appears to be invalid - clearing auth state', err);
+                localStorage.removeItem('youtube_access_token');
+                localStorage.removeItem('youtube_user');
+                setAuthState(initialAuthState);
+                
+                toast({
+                  title: "Session Expired",
+                  description: "Your YouTube session has expired. Please sign in again.",
+                  variant: "default",
+                });
+              });
           } catch (err) {
             // Invalid stored data, clear it
+            console.error("Failed to parse saved credentials:", err);
             localStorage.removeItem('youtube_access_token');
             localStorage.removeItem('youtube_user');
           }
@@ -149,17 +166,19 @@ export const useYouTubeAuth = () => {
       // Set the token for Google API calls
       if (window.gapi && window.gapi.client) {
         window.gapi.client.setToken({ access_token: accessToken });
+        console.log("Set token in GAPI client");
       }
       
       // Update authentication state immediately to improve user experience
-      setAuthState({
+      setAuthState(prevState => ({
+        ...prevState,
         isSignedIn: true,
-        accessToken,
-        user: null // Will be updated after profile fetch
-      });
+        accessToken
+      }));
       
       // Store token in localStorage
       localStorage.setItem('youtube_access_token', accessToken);
+      console.log("Saved token to localStorage");
       
       // Notify user that authentication was successful
       toast({
@@ -177,6 +196,7 @@ export const useYouTubeAuth = () => {
         try {
           console.log(`Attempting to fetch user profile, attempt ${4-retries}/3`);
           user = await fetchUserProfile(accessToken);
+          console.log("User profile retrieved:", user);
           break;
         } catch (err) {
           lastError = err;
@@ -193,11 +213,12 @@ export const useYouTubeAuth = () => {
       if (user) {
         console.log('User profile successfully fetched and processed');
         // Update auth state with user profile
-        setAuthState({
+        setAuthState(prevState => ({
+          ...prevState,
           isSignedIn: true,
           accessToken,
           user
-        });
+        }));
         
         // Store in localStorage for persistence
         localStorage.setItem('youtube_user', JSON.stringify(user));
@@ -218,11 +239,12 @@ export const useYouTubeAuth = () => {
           picture: ''
         };
         
-        setAuthState({
+        setAuthState(prevState => ({
+          ...prevState,
           isSignedIn: true,
           accessToken,
           user: fallbackUser
-        });
+        }));
         
         // Store fallback user in localStorage for persistence
         localStorage.setItem('youtube_user', JSON.stringify(fallbackUser));

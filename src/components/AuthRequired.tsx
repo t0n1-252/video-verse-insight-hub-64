@@ -14,12 +14,21 @@ const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
   
   // Force a re-render when authentication state changes
   useEffect(() => {
+    console.log("AuthRequired: Auth state changed, isSignedIn =", isSignedIn);
+    
     if (isSignedIn) {
+      console.log("User is signed in, showing content");
       setContentVisible(true);
     } else {
+      console.log("User is not signed in, hiding content");
       setContentVisible(false);
     }
   }, [isSignedIn]);
+
+  // Debug logging for initialization state
+  useEffect(() => {
+    console.log("AuthRequired: isInitializing =", isInitializing);
+  }, [isInitializing]);
 
   if (isInitializing) {
     return (
@@ -31,13 +40,16 @@ const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
   }
 
   if (!credentialsConfigured) {
+    console.log("Credentials not configured, showing login");
     return <YoutubeLogin onLoginSuccess={() => setContentVisible(true)} />;
   }
 
   if (!isSignedIn) {
+    console.log("Not signed in, showing login");
     return <YoutubeLogin onLoginSuccess={() => setContentVisible(true)} />;
   }
 
+  console.log("Auth checks passed, rendering children");
   return <>{children}</>;
 };
 

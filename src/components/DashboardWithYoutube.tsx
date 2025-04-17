@@ -53,37 +53,34 @@ const DashboardWithYoutube = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const [videos, setVideos] = useState<Video[]>([]); // Start with empty array
-  const [loading, setLoading] = useState(true); // Start with loading state
+  const [videos, setVideos] = useState<Video[]>(MOCK_VIDEOS); // Start with mock videos immediately
+  const [loading, setLoading] = useState(false); // Start with not loading
   const [loadError, setLoadError] = useState<string | null>(null);
   const { accessToken, isSignedIn, error, user } = useYouTubeAuth();
   const { toast } = useToast();
   const currentDomain = window.location.origin;
+  const [attemptedLoad, setAttemptedLoad] = useState(false);
 
-  // Always initialize with mock videos when component mounts
+  // Log auth state changes for debugging
   useEffect(() => {
-    console.log("DashboardWithYoutube mounted");
-    // Set mock videos immediately to ensure there's always content
-    if (videos.length === 0) {
-      console.log("Setting initial mock videos");
-      setVideos(MOCK_VIDEOS);
-    }
+    console.log("Auth state changed: isSignedIn =", isSignedIn, "accessToken length =", accessToken?.length || 0);
+  }, [isSignedIn, accessToken]);
+
+  // First check if we have a valid token and try to load videos once when component mounts
+  useEffect(() => {
+    console.log("DashboardWithYoutube mounted, videos count:", videos.length);
     
-    // If user is signed in with access token, try to load real videos
-    if (isSignedIn && accessToken) {
+    if (isSignedIn && accessToken && !attemptedLoad) {
       console.log('User is signed in with access token, loading videos');
+      setAttemptedLoad(true);
       loadVideos();
-    } else {
-      // Not signed in or no token, stop loading state
-      setLoading(false);
     }
-  }, [accessToken, isSignedIn]);
+  }, [accessToken, isSignedIn, attemptedLoad]);
 
   const loadVideos = async () => {
     if (!accessToken) {
       console.error('No access token available for loadVideos');
       setLoadError('Authentication token is missing. Please try signing in again.');
-      setLoading(false);
       return;
     }
     
@@ -93,40 +90,26 @@ const DashboardWithYoutube = () => {
       
       console.log('Starting video fetch with token length:', accessToken.length);
       
-      try {
-        // Try to fetch real videos first
-        const videoData = await fetchChannelVideos(accessToken);
-        console.log('Video data received:', videoData.length, 'videos');
+      // Attempt to fetch real videos
+      const videoData = await fetchChannelVideos(accessToken);
+      console.log('Video data received:', videoData.length, 'videos');
+      
+      if (videoData && videoData.length > 0) {
+        setVideos(videoData);
         
-        if (videoData && videoData.length > 0) {
-          setVideos(videoData);
-          
-          toast({
-            title: "Videos loaded successfully",
-            description: `Found ${videoData.length} videos from your channel.`,
-            variant: "default"
-          });
-        } else {
-          // If no videos found, ensure mock data is used
-          console.log('No videos found from API, using mock data');
-          setVideos(MOCK_VIDEOS);
-          
-          toast({
-            title: "Using demo videos",
-            description: "No videos found in your channel. Using demo videos for display.",
-            variant: "default"
-          });
-        }
-      } catch (apiError: any) {
-        console.error("Error fetching from YouTube API:", apiError);
-        
-        // Always fall back to mock data on any error
-        console.log('Falling back to mock data due to API error');
+        toast({
+          title: "Videos loaded successfully",
+          description: `Found ${videoData.length} videos from your channel.`,
+          variant: "default"
+        });
+      } else {
+        // If no videos found, ensure mock data is used
+        console.log('No videos found from API, using mock data');
         setVideos(MOCK_VIDEOS);
         
         toast({
           title: "Using demo videos",
-          description: "We couldn't connect to your YouTube channel. Using demo videos for now.",
+          description: "No videos found in your channel. Using demo videos for display.",
           variant: "default"
         });
       }
@@ -135,8 +118,8 @@ const DashboardWithYoutube = () => {
       const errorMessage = error.message || "Unknown error occurred";
       setLoadError(`Failed to load videos: ${errorMessage}`);
       
-      // Ensure mock videos are set even if outer try-catch fails
-      console.log('Setting mock videos as final fallback');
+      // Ensure mock videos are set on error
+      console.log('Setting mock videos due to error');
       setVideos(MOCK_VIDEOS);
       
       toast({
@@ -150,6 +133,7 @@ const DashboardWithYoutube = () => {
   };
 
   const handleRetry = () => {
+    setAttemptedLoad(true);
     loadVideos();
   };
 

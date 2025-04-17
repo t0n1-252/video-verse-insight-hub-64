@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ThreeDotsFade } from 'react-svg-spinners';
 import { Youtube, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface YoutubeLoginProps {
   onLoginSuccess?: () => void;
@@ -13,23 +13,32 @@ interface YoutubeLoginProps {
 const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   const { isSignedIn, isInitializing, user, credentialsConfigured, signIn, signOut } = useYouTubeAuth();
   const navigate = useNavigate();
+  const [signingIn, setSigningIn] = useState(false);
 
   // Add this effect to trigger onLoginSuccess when isSignedIn changes to true
   useEffect(() => {
+    console.log("YoutubeLogin: isSignedIn =", isSignedIn, "callback exists =", !!onLoginSuccess);
+    
     if (isSignedIn && onLoginSuccess) {
+      console.log("Calling login success callback");
       onLoginSuccess();
     }
   }, [isSignedIn, onLoginSuccess]);
 
   const handleAuth = async () => {
     if (isSignedIn) {
+      console.log("Signing out");
       await signOut();
     } else {
       try {
+        console.log("Attempting to sign in");
+        setSigningIn(true);
         await signIn();
-        // The onLoginSuccess will be triggered by the useEffect above
+        console.log("Sign in process initiated successfully");
+        // The onLoginSuccess will be triggered by the useEffect above when isSignedIn changes
       } catch (error) {
         console.error("Authentication error:", error);
+        setSigningIn(false);
       }
     }
   };
@@ -74,6 +83,17 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
             src={user.picture}
             alt={user.name}
             className="w-10 h-10 rounded-full"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              const parent = target.parentElement;
+              if (parent) {
+                const div = document.createElement('div');
+                div.className = 'w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center';
+                div.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-white"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+                parent.prepend(div);
+              }
+            }}
           />
           <div>
             <p className="font-medium text-gray-100">{user.name}</p>
@@ -105,9 +125,19 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
         className="bg-red-600 hover:bg-red-700 text-white"
         size="lg"
         onClick={handleAuth}
+        disabled={signingIn}
       >
-        <Youtube className="mr-2 h-5 w-5" />
-        Connect YouTube
+        {signingIn ? (
+          <>
+            <ThreeDotsFade className="mr-2" color="white" height={20} />
+            Connecting...
+          </>
+        ) : (
+          <>
+            <Youtube className="mr-2 h-5 w-5" />
+            Connect YouTube
+          </>
+        )}
       </Button>
       
       <p className="text-xs text-gray-500 max-w-sm text-center">
