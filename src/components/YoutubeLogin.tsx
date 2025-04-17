@@ -1,3 +1,4 @@
+
 import { useYouTubeAuth } from '@/lib/youtube-auth';
 import { Button } from '@/components/ui/button';
 import { ThreeDotsFade } from 'react-svg-spinners';
@@ -51,8 +52,20 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   };
 
   const handleClearAndRetry = () => {
+    // Clear all auth related data
     localStorage.removeItem('youtube_access_token');
     localStorage.removeItem('youtube_user');
+    sessionStorage.removeItem('youtube_token_timestamp');
+    
+    // Clear any Google-specific cookies that might be causing issues
+    document.cookie.split(';').forEach(c => {
+      if (c.trim().startsWith('g_')) {
+        const cookieName = c.split('=')[0];
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      }
+    });
+    
+    // Perform a hard reload to ensure all state is cleared
     window.location.reload();
   };
 
@@ -125,14 +138,17 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
           </div>
           
           {showDebugInfo && (
-            <div className="mt-4 text-left text-xs p-3 bg-gray-800 rounded-md">
+            <div className="mt-4 text-left text-xs p-3 bg-gray-800 rounded-md max-h-60 overflow-auto">
               <h3 className="font-bold mb-2">Debug Information:</h3>
               <ul className="space-y-1">
                 <li><span className="font-semibold">Client ID:</span> {CLIENT_ID.substring(0, 8)}...{CLIENT_ID.substring(CLIENT_ID.length - 8)}</li>
                 <li><span className="font-semibold">Redirect URI:</span> {REDIRECT_URI}</li>
+                <li><span className="font-semibold">Current Path:</span> {window.location.pathname}</li>
                 <li><span className="font-semibold">Full URL:</span> {window.location.href}</li>
                 <li><span className="font-semibold">User Agent:</span> {navigator.userAgent}</li>
                 <li><span className="font-semibold">OAuth Error:</span> {errorToDisplay}</li>
+                <li><span className="font-semibold">Error Type:</span> {profileFetchError ? 'Profile Fetch Error' : 'Authentication Error'}</li>
+                <li><span className="font-semibold">Local Storage:</span> {localStorage.getItem('youtube_access_token') ? 'Has access token' : 'No access token'}</li>
               </ul>
             </div>
           )}

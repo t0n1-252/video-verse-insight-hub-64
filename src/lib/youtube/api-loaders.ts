@@ -13,7 +13,11 @@ export const loadGisClient = async (): Promise<void> => {
         return;
       } else {
         console.log('Script tag exists but Google Identity Services not available, will reload');
-        // Continue with loading to ensure it's properly initialized
+        // Remove the existing script tag to force a clean reload
+        const existingScript = document.getElementById('google-gis-script');
+        if (existingScript && existingScript.parentNode) {
+          existingScript.parentNode.removeChild(existingScript);
+        }
       }
     }
     
@@ -37,9 +41,9 @@ export const loadGisClient = async (): Promise<void> => {
             } else {
               reject(new Error('Google Identity Services not available after loading'));
             }
-          }, 1000); // Longer delay for more reliability
+          }, 1500); // Longer delay for more reliability
         }
-      }, 500); // Increased delay for initialization
+      }, 1000); // Increased delay for initialization
     };
     script.onerror = (error) => {
       console.error('Error loading Google Identity Services:', error);
@@ -61,7 +65,11 @@ export const loadGapiClient = async (): Promise<void> => {
         return;
       } else {
         console.log('Script tag exists but GAPI client not initialized, will reload');
-        // Continue with loading to ensure it's properly initialized
+        // Remove the existing script tag to force a clean reload
+        const existingScript = document.getElementById('google-gapi-script');
+        if (existingScript && existingScript.parentNode) {
+          existingScript.parentNode.removeChild(existingScript);
+        }
       }
     }
     
@@ -96,7 +104,7 @@ export const loadGapiClient = async (): Promise<void> => {
             reject(error);
           }
         });
-      }, 500); // Add longer delay for more reliable initialization
+      }, 1000); // Add longer delay for more reliable initialization
     };
     script.onerror = (error) => {
       console.error('Error loading Google API client:', error);

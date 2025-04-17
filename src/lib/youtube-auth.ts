@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthState } from './youtube/types';
@@ -12,6 +13,12 @@ import {
   checkTokenValidity
 } from './youtube/config';
 
+// Constants for token management
+const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+const TOKEN_KEY = 'youtube_access_token';
+const USER_KEY = 'youtube_user';
+const TOKEN_TIMESTAMP_KEY = 'youtube_token_timestamp';
+
 // Hook for YouTube authentication
 export const useYouTubeAuth = () => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
@@ -22,6 +29,20 @@ export const useYouTubeAuth = () => {
   const [profileFetchError, setProfileFetchError] = useState<string | null>(null);
   
   const { toast } = useToast();
+
+  // Check if token is too old based on stored timestamp
+  const isTokenStale = () => {
+    const timestamp = sessionStorage.getItem(TOKEN_TIMESTAMP_KEY);
+    if (!timestamp) return true;
+    
+    const tokenTime = parseInt(timestamp, 10);
+    const now = Date.now();
+    const elapsedTime = now - tokenTime;
+    
+    console.log(`Token age check: ${elapsedTime / 1000}s elapsed (threshold: ${TOKEN_REFRESH_THRESHOLD_MS / 1000}s)`);
+    
+    return elapsedTime > TOKEN_REFRESH_THRESHOLD_MS;
+  };
 
   useEffect(() => {
     const initClients = async () => {
@@ -45,6 +66,10 @@ export const useYouTubeAuth = () => {
             callback: (tokenResponse: any) => {
               if (tokenResponse && tokenResponse.access_token) {
                 console.log("Token received from Google OAuth", tokenResponse.access_token.substring(0, 10) + "...");
+                
+                // Store token timestamp to track age
+                sessionStorage.setItem(TOKEN_TIMESTAMP_KEY, Date.now().toString());
+                
                 handleAuthSuccess(tokenResponse.access_token);
               }
             },
@@ -68,13 +93,28 @@ export const useYouTubeAuth = () => {
           setError(new Error('Google Identity Services not available'));
         }
         
-        const savedToken = localStorage.getItem('youtube_access_token');
-        const savedUser = localStorage.getItem('youtube_user');
+        const savedToken = localStorage.getItem(TOKEN_KEY);
+        const savedUser = localStorage.getItem(USER_KEY);
         
         console.log("Checking for saved credentials:", !!savedToken, !!savedUser);
         
         if (savedToken && savedUser) {
           try {
+            // Check if token is stale based on timestamp
+            if (isTokenStale()) {
+              console.warn("Saved token is too old, clearing session");
+              localStorage.removeItem(TOKEN_KEY);
+              localStorage.removeItem(USER_KEY);
+              sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
+              
+              toast({
+                title: "Session Expired",
+                description: "Your YouTube session has expired. Please sign in again.",
+                variant: "default",
+              });
+              return;
+            }
+            
             const userObj = JSON.parse(savedUser);
             
             console.log("Validating saved token before restoring session");
@@ -94,8 +134,9 @@ export const useYouTubeAuth = () => {
               }
             } else {
               console.warn("Saved token is invalid, clearing session:", tokenStatus.details);
-              localStorage.removeItem('youtube_access_token');
-              localStorage.removeItem('youtube_user');
+              localStorage.removeItem(TOKEN_KEY);
+              localStorage.removeItem(USER_KEY);
+              sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
               
               toast({
                 title: "Session Expired",
@@ -105,8 +146,9 @@ export const useYouTubeAuth = () => {
             }
           } catch (err) {
             console.error("Failed to parse saved credentials:", err);
-            localStorage.removeItem('youtube_access_token');
-            localStorage.removeItem('youtube_user');
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
           }
         }
       } catch (err) {
@@ -143,6 +185,7 @@ export const useYouTubeAuth = () => {
     initClients();
     
     return () => {
+      // Cleanup if needed
     };
   }, [credentialsConfigured, toast]);
 
@@ -171,8 +214,10 @@ export const useYouTubeAuth = () => {
         accessToken
       }));
       
-      localStorage.setItem('youtube_access_token', accessToken);
-      console.log("Saved token to localStorage");
+      localStorage.setItem(TOKEN_KEY, accessToken);
+      // Store token timestamp for age tracking
+      sessionStorage.setItem(TOKEN_TIMESTAMP_KEY, Date.now().toString());
+      console.log("Saved token to localStorage and timestamp to sessionStorage");
       
       toast({
         title: "Successfully authenticated",
@@ -219,7 +264,7 @@ export const useYouTubeAuth = () => {
           user
         }));
         
-        localStorage.setItem('youtube_user', JSON.stringify(user));
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
         
         toast({
           title: "Successfully connected",
@@ -239,12 +284,12 @@ export const useYouTubeAuth = () => {
         console.error('Profile fetch error:', errorMessage);
         setProfileFetchError(errorMessage);
         
-        setAuthState(prevState => ({
-          ...prevState,
-          isSignedIn: true,
-          accessToken,
-          user: null 
-        }));
+        // Clean up localStorage if we couldn't get user info
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
+        
+        setAuthState(initialAuthState);
         
         toast({
           title: "Profile Information Unavailable",
@@ -258,8 +303,9 @@ export const useYouTubeAuth = () => {
       console.error('Error in handleAuthSuccess:', error);
       
       setAuthState(initialAuthState);
-      localStorage.removeItem('youtube_access_token');
-      localStorage.removeItem('youtube_user');
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
       
       toast({
         title: "Authentication Failed",
@@ -291,16 +337,21 @@ export const useYouTubeAuth = () => {
         throw error;
       }
       
-      localStorage.removeItem('youtube_access_token');
-      localStorage.removeItem('youtube_user');
+      // Clear any existing tokens and errors
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
       setProfileFetchError(null);
       
       console.log('Current origin:', window.location.origin);
+      console.log('Current path:', window.location.pathname);
+      console.log('Initiating OAuth flow with prompt=consent for /mock-dashboard');
       
+      // Force consent screen every time to ensure we get a fresh token
       tokenClient.requestAccessToken({
         prompt: 'consent',
         hint: '',
-        state: REDIRECT_URI,
+        state: window.location.pathname,  // Include current path in state
         enable_serial_consent: true
       });
       
@@ -342,18 +393,24 @@ export const useYouTubeAuth = () => {
 
   const signOut = async () => {
     try {
-      localStorage.removeItem('youtube_access_token');
-      localStorage.removeItem('youtube_user');
+      const token = localStorage.getItem(TOKEN_KEY);
       
-      if (authState.accessToken) {
+      // Clear all storage
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
+      
+      if (token) {
         try {
-          const revokeUrl = `https://oauth2.googleapis.com/revoke?token=${authState.accessToken}`;
+          console.log('Revoking token with Google OAuth server');
+          const revokeUrl = `https://oauth2.googleapis.com/revoke?token=${token}`;
           await fetch(revokeUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded'
             }
           });
+          console.log('Token revoked successfully');
         } catch (e) {
           console.error('Error revoking token:', e);
         }
