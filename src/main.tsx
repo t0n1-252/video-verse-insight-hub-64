@@ -4,13 +4,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-// Define window types for Google APIs
-declare global {
-  interface Window {
-    gapi: any;
-    google: any;
-  }
-}
+// We need to remove the duplicate window type declarations
+// since they're already defined in youtube/types.ts
 
 // Get the root element
 const rootElement = document.getElementById('root');

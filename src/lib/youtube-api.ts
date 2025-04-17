@@ -92,32 +92,27 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
         if (!window.gapi.client.youtube) {
           console.log('YouTube API not initialized, loading explicitly...');
           
-          window.gapi.client.load('youtube', 'v3')
-            .then(() => {
-              console.log('YouTube API loaded explicitly, proceeding with fetch');
-              // Reset token after initialization
-              window.gapi.client.setToken({ access_token: accessToken });
-              
-              fetchVideosAfterInit(accessToken)
-                .then(videos => {
-                  if (videos && videos.length > 0) {
-                    resolve(videos);
-                  } else {
-                    console.log('No real videos found, returning mock videos');
-                    resolve(MOCK_VIDEOS);
-                  }
-                })
-                .catch(err => {
-                  console.error('Error fetching videos after API init:', err);
-                  console.log('Returning mock videos due to fetch error');
+          // Fix for the error - gapi.client.load needs a callback as the third argument
+          window.gapi.client.load('youtube', 'v3', () => {
+            console.log('YouTube API loaded explicitly, proceeding with fetch');
+            // Reset token after initialization
+            window.gapi.client.setToken({ access_token: accessToken });
+            
+            fetchVideosAfterInit(accessToken)
+              .then(videos => {
+                if (videos && videos.length > 0) {
+                  resolve(videos);
+                } else {
+                  console.log('No real videos found, returning mock videos');
                   resolve(MOCK_VIDEOS);
-                });
-            })
-            .catch(err => {
-              console.error('Error loading YouTube API:', err);
-              console.log('Returning mock videos due to API loading error');
-              resolve(MOCK_VIDEOS);
-            });
+                }
+              })
+              .catch(err => {
+                console.error('Error fetching videos after API init:', err);
+                console.log('Returning mock videos due to fetch error');
+                resolve(MOCK_VIDEOS);
+              });
+          });
         } else {
           console.log('YouTube API already initialized, proceeding with fetch');
           // API already initialized, fetch directly
