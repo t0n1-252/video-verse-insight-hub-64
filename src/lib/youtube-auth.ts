@@ -246,55 +246,67 @@ export const useYouTubeAuth = () => {
     };
   }, [credentialsConfigured, toast]);
 
-  // Helper function to fetch user profile - fixing the user profile fetch issues
+  // Helper function to fetch user profile - improved error handling and debugging
   const fetchUserProfile = async (accessToken: string) => {
-    try {
-      console.log('Fetching user profile with token:', accessToken ? 'valid token' : 'no token');
-      
-      // Use direct XMLHttpRequest instead of fetch to avoid CORS issues
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', 'https://www.googleapis.com/oauth2/v3/userinfo', true);
-        xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        
-        xhr.onload = function() {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const userData = JSON.parse(xhr.responseText);
-              console.log('User profile fetched successfully:', userData);
-              
-              resolve({
-                name: userData.name || 'YouTube User',
-                email: userData.email || '',
-                picture: userData.picture || ''
-              });
-            } catch (error) {
-              console.error('Error parsing user profile:', error);
-              reject(error);
-            }
-          } else {
-            console.error(`Failed to fetch user profile: ${xhr.status} ${xhr.statusText}`);
-            reject(new Error(`Failed to fetch user profile: ${xhr.status}`));
-          }
-        };
-        
-        xhr.onerror = function() {
-          console.error('Network error while fetching user profile');
-          reject(new Error('Network error while fetching user profile'));
-        };
-        
-        xhr.send();
-      });
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      throw error;
+    if (!accessToken) {
+      console.error('No access token provided for fetchUserProfile');
+      throw new Error('Missing access token');
     }
+    
+    console.log(`Attempting to fetch user profile with token length: ${accessToken.length}`);
+    
+    // Use a simple GET request with the Google userinfo endpoint
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', 'https://www.googleapis.com/oauth2/v3/userinfo', true);
+      xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+      
+      xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const userData = JSON.parse(xhr.responseText);
+            console.log('User profile data retrieved successfully', {
+              name: userData.name ? 'present' : 'missing',
+              email: userData.email ? 'present' : 'missing',
+              picture: userData.picture ? 'present' : 'missing'
+            });
+            
+            resolve({
+              name: userData.name || 'YouTube User',
+              email: userData.email || '',
+              picture: userData.picture || ''
+            });
+          } catch (error) {
+            console.error('Error parsing user profile JSON:', error);
+            reject(new Error('Failed to parse user profile data'));
+          }
+        } else {
+          console.error(`User profile fetch failed with status: ${xhr.status}`);
+          console.error(`Response text: ${xhr.responseText.substring(0, 200)}...`);
+          reject(new Error(`Failed to fetch user profile: ${xhr.status}`));
+        }
+      };
+      
+      xhr.onerror = function() {
+        console.error('Network error while fetching user profile');
+        reject(new Error('Network error while fetching user profile'));
+      };
+      
+      xhr.ontimeout = function() {
+        console.error('Timeout while fetching user profile');
+        reject(new Error('Request timed out'));
+      };
+      
+      // Set a longer timeout
+      xhr.timeout = 10000; // 10 seconds
+      
+      xhr.send();
+    });
   };
 
   // Helper function to handle successful authentication
   const handleAuthSuccess = async (accessToken: string) => {
-    console.log('Successfully obtained access token, now fetching user profile');
+    console.log('Authentication successful, token obtained');
     
     try {
       // Set the token for Google API calls
@@ -302,7 +314,7 @@ export const useYouTubeAuth = () => {
         window.gapi.client.setToken({ access_token: accessToken });
       }
       
-      // Set auth state with token first, so user can use the app even if profile fetch fails
+      // Update authentication state immediately to improve user experience
       setAuthState({
         isSignedIn: true,
         accessToken,
@@ -312,26 +324,37 @@ export const useYouTubeAuth = () => {
       // Store token in localStorage
       localStorage.setItem('youtube_access_token', accessToken);
       
+      // Notify user that authentication was successful
+      toast({
+        title: "Successfully authenticated",
+        description: "Fetching your profile information...",
+        variant: "default",
+      });
+      
       // Try to fetch user profile with multiple retries
       let user = null;
       let retries = 3;
+      let lastError = null;
       
       while (retries > 0 && !user) {
         try {
+          console.log(`Attempting to fetch user profile, attempt ${4-retries}/3`);
           user = await fetchUserProfile(accessToken);
           break;
         } catch (err) {
-          console.warn(`User profile fetch attempt failed, ${retries - 1} retries left`);
+          lastError = err;
+          console.warn(`User profile fetch attempt failed, ${retries - 1} retries left`, err);
           retries--;
           
           if (retries > 0) {
-            // Wait a bit longer between retries
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Increase delay between retries
+            await new Promise(resolve => setTimeout(resolve, 3000));
           }
         }
       }
       
       if (user) {
+        console.log('User profile successfully fetched and processed');
         // Update auth state with user profile
         setAuthState({
           isSignedIn: true,
@@ -349,9 +372,22 @@ export const useYouTubeAuth = () => {
         });
       } else {
         // Still logged in but couldn't get profile
+        console.error('Failed to fetch user profile after multiple attempts', lastError);
+        
+        // Set basic user info without profile details
+        setAuthState({
+          isSignedIn: true,
+          accessToken,
+          user: {
+            name: 'YouTube User',
+            email: '',
+            picture: ''
+          }
+        });
+        
         toast({
-          title: "Partially connected",
-          description: "Your YouTube account is connected, but we couldn't fetch your profile details.",
+          title: "Connected with limited info",
+          description: "Your YouTube account is connected, but we couldn't fetch your profile details. You can still use the app.",
           variant: "default",
         });
       }
@@ -362,9 +398,19 @@ export const useYouTubeAuth = () => {
       console.error('Error in handleAuthSuccess:', error);
       
       // We're still authenticated, just couldn't get user details
+      setAuthState({
+        isSignedIn: true,
+        accessToken,
+        user: {
+          name: 'YouTube User',
+          email: '',
+          picture: ''
+        }
+      });
+      
       toast({
         title: "Partially connected",
-        description: "Your YouTube account is connected, but we couldn't fetch your profile details.",
+        description: "Your YouTube account is connected, but we couldn't fetch your profile details. You can still use the app.",
         variant: "default",
       });
     }

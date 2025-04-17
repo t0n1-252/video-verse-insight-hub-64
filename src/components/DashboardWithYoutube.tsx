@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, User } from "lucide-react";
 import VideoAnalysis from "@/pages/VideoAnalysis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useYouTubeAuth } from "@/lib/youtube-auth";
@@ -107,12 +107,16 @@ const DashboardWithYoutube = () => {
           {isSignedIn && user ? (
             <div className="mb-4 p-4 bg-gray-800 rounded-md">
               <div className="flex items-center">
-                {user.picture && (
+                {user.picture ? (
                   <img 
                     src={user.picture} 
                     alt={user.name} 
                     className="w-10 h-10 rounded-full mr-3" 
                   />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center mr-3">
+                    <User className="h-6 w-6 text-white" />
+                  </div>
                 )}
                 <div>
                   <p className="font-medium text-white">{user.name}</p>
