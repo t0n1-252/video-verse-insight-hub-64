@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useYouTubeAuth } from '@/lib/youtube-auth';
 import YoutubeLogin from './YoutubeLogin';
 import { Spinner } from '@/components/ui/spinner';
@@ -10,6 +10,16 @@ interface AuthRequiredProps {
 
 const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
   const { isSignedIn, isInitializing, credentialsConfigured } = useYouTubeAuth();
+  const [contentVisible, setContentVisible] = useState(false);
+  
+  // Force a re-render when authentication state changes
+  useEffect(() => {
+    if (isSignedIn) {
+      setContentVisible(true);
+    } else {
+      setContentVisible(false);
+    }
+  }, [isSignedIn]);
 
   if (isInitializing) {
     return (
@@ -21,11 +31,11 @@ const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
   }
 
   if (!credentialsConfigured) {
-    return <YoutubeLogin />;
+    return <YoutubeLogin onLoginSuccess={() => setContentVisible(true)} />;
   }
 
   if (!isSignedIn) {
-    return <YoutubeLogin />;
+    return <YoutubeLogin onLoginSuccess={() => setContentVisible(true)} />;
   }
 
   return <>{children}</>;

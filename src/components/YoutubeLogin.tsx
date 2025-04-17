@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ThreeDotsFade } from 'react-svg-spinners';
 import { Youtube, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 interface YoutubeLoginProps {
   onLoginSuccess?: () => void;
@@ -13,13 +14,22 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   const { isSignedIn, isInitializing, user, credentialsConfigured, signIn, signOut } = useYouTubeAuth();
   const navigate = useNavigate();
 
+  // Add this effect to trigger onLoginSuccess when isSignedIn changes to true
+  useEffect(() => {
+    if (isSignedIn && onLoginSuccess) {
+      onLoginSuccess();
+    }
+  }, [isSignedIn, onLoginSuccess]);
+
   const handleAuth = async () => {
     if (isSignedIn) {
       await signOut();
     } else {
-      await signIn();
-      if (onLoginSuccess) {
-        onLoginSuccess();
+      try {
+        await signIn();
+        // The onLoginSuccess will be triggered by the useEffect above
+      } catch (error) {
+        console.error("Authentication error:", error);
       }
     }
   };

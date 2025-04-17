@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { useYouTubeAuth } from "@/lib/youtube-auth";
 import { fetchChannelVideos, Video } from "@/lib/youtube-api";
 import { ThreeDotsFade } from "react-svg-spinners";
 import AuthRequired from "@/components/AuthRequired";
+import { useToast } from "@/hooks/use-toast";
 
 const DashboardWithYoutube = () => {
   const navigate = useNavigate();
@@ -17,13 +19,15 @@ const DashboardWithYoutube = () => {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);
-  const { accessToken } = useYouTubeAuth();
+  const { accessToken, isSignedIn } = useYouTubeAuth();
+  const { toast } = useToast();
 
+  // Update this useEffect to react to isSignedIn as well
   useEffect(() => {
-    if (accessToken) {
+    if (isSignedIn && accessToken) {
       loadVideos();
     }
-  }, [accessToken]);
+  }, [accessToken, isSignedIn]);
 
   const loadVideos = async () => {
     if (!accessToken) return;
@@ -32,8 +36,27 @@ const DashboardWithYoutube = () => {
       setLoading(true);
       const videoData = await fetchChannelVideos(accessToken);
       setVideos(videoData);
+      
+      if (videoData.length === 0) {
+        toast({
+          title: "No videos found",
+          description: "We couldn't find any videos in your YouTube channel.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Videos loaded successfully",
+          description: `Found ${videoData.length} videos from your channel.`,
+          variant: "default"
+        });
+      }
     } catch (error) {
       console.error("Error loading videos:", error);
+      toast({
+        title: "Error loading videos",
+        description: "There was a problem fetching your videos. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
