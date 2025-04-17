@@ -111,8 +111,11 @@ export const useYouTubeAuth = () => {
         await Promise.all([loadGapiClient(), loadGisClient()]);
         
         // Check if user is already signed in
-        if (window.gapi.auth2 && 
+        if (window.gapi && 
+            window.gapi.auth2 && 
+            window.gapi.auth2.getAuthInstance && 
             window.gapi.auth2.getAuthInstance() && 
+            window.gapi.auth2.getAuthInstance().isSignedIn && 
             window.gapi.auth2.getAuthInstance().isSignedIn.get()) {
           const googleUser = window.gapi.auth2.getAuthInstance().currentUser.get();
           const profile = googleUser.getBasicProfile();
@@ -134,24 +137,26 @@ export const useYouTubeAuth = () => {
         setError(error);
         
         // Show toast notification for certain errors
-        if (error.message.includes('credentials not configured')) {
-          toast({
-            title: "YouTube API Setup Required",
-            description: "Please configure your YouTube API credentials. Visit the /setup page for instructions.",
-            variant: "destructive",
-          });
-        } else if (error.message.includes('invalid_client')) {
-          toast({
-            title: "Authentication Error",
-            description: "Your YouTube API client ID is invalid. Please check your configuration.",
-            variant: "destructive",
-          });
-        } else if (error.message.includes('redirect_uri_mismatch') || error.message.includes('JavaScript origin')) {
-          toast({
-            title: "Authorization Error",
-            description: "Redirect URI or JavaScript origin mismatch. Make sure they're correctly configured in Google Cloud Console.",
-            variant: "destructive",
-          });
+        if (error.message && typeof error.message === 'string') {
+          if (error.message.includes('credentials not configured')) {
+            toast({
+              title: "YouTube API Setup Required",
+              description: "Please configure your YouTube API credentials. Visit the /setup page for instructions.",
+              variant: "destructive",
+            });
+          } else if (error.message.includes('invalid_client')) {
+            toast({
+              title: "Authentication Error",
+              description: "Your YouTube API client ID is invalid. Please check your configuration.",
+              variant: "destructive",
+            });
+          } else if (error.message.includes('redirect_uri_mismatch') || error.message.includes('JavaScript origin')) {
+            toast({
+              title: "Authorization Error",
+              description: "Redirect URI or JavaScript origin mismatch. Make sure they're correctly configured in Google Cloud Console.",
+              variant: "destructive",
+            });
+          }
         }
       } finally {
         setIsInitializing(false);
@@ -184,6 +189,10 @@ export const useYouTubeAuth = () => {
       }
       
       const googleAuth = window.gapi.auth2.getAuthInstance();
+      if (!googleAuth) {
+        throw new Error('Google Auth instance not available');
+      }
+      
       const options = {
         scope: SCOPES.join(' '),
         ux_mode: 'popup',
@@ -191,6 +200,10 @@ export const useYouTubeAuth = () => {
       };
       
       const googleUser = await googleAuth.signIn(options);
+      if (!googleUser) {
+        throw new Error('Google User not available after sign in');
+      }
+      
       const profile = googleUser.getBasicProfile();
       const authResponse = googleUser.getAuthResponse();
       
@@ -211,24 +224,32 @@ export const useYouTubeAuth = () => {
       setError(error);
       
       // Show more specific toast for common errors
-      if (error.message.includes('invalid_client')) {
-        toast({
-          title: "Authentication Error",
-          description: "Your YouTube API client ID is invalid. Please check your configuration.",
-          variant: "destructive",
-        });
-      } else if (error.message.includes('redirect_uri_mismatch') || error.message.includes('JavaScript origin')) {
-        toast({
-          title: "Authorization Error",
-          description: "Redirect URI or JavaScript origin mismatch. Make sure they're correctly configured in Google Cloud Console.",
-          variant: "destructive",
-        });
-      } else if (error.message.includes('popup_closed_by_user')) {
-        toast({
-          title: "Authentication Cancelled",
-          description: "You closed the login popup before completing authentication.",
-          variant: "default",
-        });
+      if (error.message && typeof error.message === 'string') {
+        if (error.message.includes('invalid_client')) {
+          toast({
+            title: "Authentication Error",
+            description: "Your YouTube API client ID is invalid. Please check your configuration.",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('redirect_uri_mismatch') || error.message.includes('JavaScript origin')) {
+          toast({
+            title: "Authorization Error",
+            description: "Redirect URI or JavaScript origin mismatch. Make sure they're correctly configured in Google Cloud Console.",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('popup_closed_by_user')) {
+          toast({
+            title: "Authentication Cancelled",
+            description: "You closed the login popup before completing authentication.",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Authentication Error",
+            description: error.message || "An error occurred during YouTube authentication.",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Authentication Error",
@@ -249,6 +270,10 @@ export const useYouTubeAuth = () => {
       }
       
       const googleAuth = window.gapi.auth2.getAuthInstance();
+      if (!googleAuth) {
+        throw new Error('Google Auth instance not available');
+      }
+      
       await googleAuth.signOut();
       
       setAuthState(initialAuthState);
