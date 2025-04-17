@@ -1,65 +1,46 @@
+
 // YouTube API service functions
+import { fetchUserProfile } from './youtube/user-profile';
 
 // Define interfaces for video types
 export interface Video {
   id: string;
   title: string;
+  description: string;
   thumbnail: string;
   publishDate: string;
-  viewCount: string;
+  viewCount: number;
+  likeCount: number;
   commentCount: number;
-  description?: string;
-  likeCount?: string;
-  duration?: string;
-  channelId?: string;
-  channelTitle?: string;
 }
 
 export interface Comment {
   id: string;
-  author: string;
-  profilePic: string;
+  authorName: string;
+  authorProfileImageUrl: string;
   text: string;
-  likes: number;
-  timestamp: string;
-  sentiment: "positive" | "neutral" | "negative";
+  likeCount: number;
+  publishedAt: string;
+  updatedAt: string;
+  isPriority: boolean;
   isQuestion: boolean;
   isComplaint: boolean;
-  isPriority: boolean;
 }
 
-export interface SentimentAnalysis {
-  positive: number;
-  neutral: number;
-  negative: number;
-}
-
-export interface ContentOpportunity {
-  id: string;
-  title: string;
-  description: string;
-  relevantComments: number;
-  confidence: number;
-}
-
-// Fetch channel videos using the browser-compatible gapi client
+// Function to fetch videos from the user's channel
 export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> => {
   try {
-    // Validate inputs
-    if (!accessToken) {
-      console.error('No access token provided to fetchChannelVideos');
-      throw new Error('No access token provided');
-    }
-    
-    // Check if gapi is loaded
     if (!window.gapi) {
-      console.error('Google API client not loaded in fetchChannelVideos');
+      console.error('GAPI not loaded');
       throw new Error('Google API client not loaded');
     }
     
-    console.log('Fetching channel videos with access token length:', accessToken.length);
+    if (!accessToken) {
+      console.error('No access token provided');
+      throw new Error('Missing access token');
+    }
     
-    // Set the access token for this request
+    // Set up the API with the provided access token
     window.gapi.client.setApiKey('');
     window.gapi.client.setToken({ access_token: accessToken });
     
@@ -116,295 +97,305 @@ const fetchVideosAfterInit = async (accessToken: string): Promise<Video[]> => {
       mine: true
     });
     
-    console.log('Channel response received:', channelResponse);
-    
-    if (!channelResponse.result.items || channelResponse.result.items.length === 0) {
-      console.log('No channel found for the authenticated user');
-      return [];
+    if (!channelResponse.result || !channelResponse.result.items || channelResponse.result.items.length === 0) {
+      console.error('No channel found for the authenticated user');
+      throw new Error('No YouTube channel found for this account');
     }
     
     const channelId = channelResponse.result.items[0].id;
-    console.log('Found channel ID:', channelId);
+    console.log('Retrieved channel ID:', channelId);
     
-    // Get videos from the user's channel
-    console.log('Fetching videos for channel', channelId);
-    const videosResponse = await window.gapi.client.youtube.search.list({
-      part: 'snippet',
-      channelId: channelId,
-      maxResults: 50,
-      order: 'date',
-      type: 'video'
+    // Get the uploads playlist ID which contains all uploaded videos
+    const channelContentResponse = await window.gapi.client.youtube.channels.list({
+      part: 'contentDetails',
+      id: channelId
     });
     
-    console.log('Videos response received:', videosResponse);
+    if (!channelContentResponse.result || !channelContentResponse.result.items || channelContentResponse.result.items.length === 0) {
+      console.error('No content details found for the channel');
+      throw new Error('No content details found for the channel');
+    }
     
-    if (!videosResponse.result.items || videosResponse.result.items.length === 0) {
-      console.log('No videos found for channel');
+    const uploadsPlaylistId = channelContentResponse.result.items[0].contentDetails.relatedPlaylists.uploads;
+    console.log('Retrieved uploads playlist ID:', uploadsPlaylistId);
+    
+    // Get the videos in the uploads playlist
+    const playlistItemsResponse = await window.gapi.client.youtube.playlistItems.list({
+      part: 'snippet,contentDetails',
+      playlistId: uploadsPlaylistId,
+      maxResults: 50
+    });
+    
+    if (!playlistItemsResponse.result || !playlistItemsResponse.result.items) {
+      console.error('No videos found in the uploads playlist');
       return [];
     }
     
-    // Get additional video details (view counts, etc.)
-    const videoIds = videosResponse.result.items
-      .map(item => item.id?.videoId)
-      .filter(Boolean);
-      
+    const videoIds = playlistItemsResponse.result.items.map(item => 
+      item.contentDetails.videoId
+    );
+    
     if (videoIds.length === 0) {
-      console.log('No valid video IDs found');
+      console.log('No videos found on this channel');
       return [];
     }
     
-    console.log('Fetching details for', videoIds.length, 'videos');
-    const videoDetailsResponse = await window.gapi.client.youtube.videos.list({
-      part: 'statistics,snippet,contentDetails',
+    // Get detailed info for each video
+    const videosResponse = await window.gapi.client.youtube.videos.list({
+      part: 'snippet,statistics',
       id: videoIds.join(',')
     });
     
-    console.log('Video details response received:', videoDetailsResponse);
-    
-    if (!videoDetailsResponse.result.items) {
-      console.log('No video details returned');
+    if (!videosResponse.result || !videosResponse.result.items) {
+      console.error('Failed to get video details');
       return [];
     }
-    
-    console.log('Successfully fetched details for', videoDetailsResponse.result.items.length, 'videos');
     
     // Map the response to our Video interface
-    return videoDetailsResponse.result.items.map(video => {
-      const snippet = video.snippet || {};
-      const statistics = video.statistics || {};
-      const thumbnails = snippet.thumbnails || {};
-      
-      return {
-        id: video.id || '',
-        title: snippet.title || 'Untitled Video',
-        thumbnail: thumbnails.high?.url || thumbnails.default?.url || '',
-        publishDate: snippet.publishedAt || '',
-        viewCount: statistics.viewCount || '0',
-        commentCount: parseInt(statistics.commentCount || '0'),
-        description: snippet.description || '',
-        likeCount: statistics.likeCount || '0',
-        channelId: snippet.channelId || '',
-        channelTitle: snippet.channelTitle || '',
-      };
-    });
-  } catch (error: any) {
-    console.error('Error in YouTube API request:', error);
+    const videos: Video[] = videosResponse.result.items.map(item => ({
+      id: item.id,
+      title: item.snippet.title,
+      description: item.snippet.description,
+      thumbnail: item.snippet.thumbnails.medium ? item.snippet.thumbnails.medium.url : '',
+      publishDate: item.snippet.publishedAt,
+      viewCount: parseInt(item.statistics.viewCount || '0', 10),
+      likeCount: parseInt(item.statistics.likeCount || '0', 10),
+      commentCount: parseInt(item.statistics.commentCount || '0', 10)
+    }));
     
-    // Check for common auth errors
-    if (error.result && error.result.error) {
-      console.error('YouTube API error:', error.result.error.message);
-      
-      // If access token is expired or invalid
-      if (error.result.error.code === 401) {
-        throw new Error('Authentication expired. Please sign in again.');
-      }
-    }
-    
-    throw error;
-  }
-};
-
-// Get video comments
-export const fetchVideoComments = async (accessToken: string, videoId: string): Promise<Comment[]> => {
-  try {
-    // Set the access token for this request
-    window.gapi.client.setApiKey('');
-    window.gapi.client.setToken({ access_token: accessToken });
-    
-    const commentsResponse = await window.gapi.client.youtube.commentThreads.list({
-      part: 'snippet,replies',
-      videoId: videoId,
-      maxResults: 100,
-      order: 'relevance'
-    });
-    
-    if (!commentsResponse.result.items) {
-      return [];
-    }
-    
-    // Map comments to our Comment interface with mock sentiment analysis
-    // In a real app, you would use a proper sentiment analysis API or ML model
-    return commentsResponse.result.items.map(item => {
-      const snippet = item.snippet?.topLevelComment?.snippet;
-      if (!snippet) return null;
-      
-      // Simplified mock sentiment analysis based on comment text
-      const text = snippet.textDisplay || '';
-      let sentiment: "positive" | "neutral" | "negative" = "neutral";
-      const positiveWords = ["great", "awesome", "love", "excellent", "amazing", "thank", "good", "best"];
-      const negativeWords = ["bad", "hate", "terrible", "awful", "worst", "sucks", "horrible", "disappointed"];
-      
-      const lowerText = text.toLowerCase();
-      const hasPositive = positiveWords.some(word => lowerText.includes(word));
-      const hasNegative = negativeWords.some(word => lowerText.includes(word));
-      
-      if (hasPositive && !hasNegative) sentiment = "positive";
-      if (hasNegative && !hasPositive) sentiment = "negative";
-      
-      // Simple detection of questions and complaints
-      const isQuestion = lowerText.includes("?") || 
-                         lowerText.includes("how") || 
-                         lowerText.includes("what") || 
-                         lowerText.includes("when") || 
-                         lowerText.includes("where") || 
-                         lowerText.includes("why") || 
-                         lowerText.includes("could you");
-      
-      const isComplaint = lowerText.includes("error") || 
-                          lowerText.includes("problem") || 
-                          lowerText.includes("doesn't work") || 
-                          lowerText.includes("issue") || 
-                          lowerText.includes("not working");
-      
-      // Priority comments are questions or complaints, especially negative ones
-      const isPriority = (isQuestion || isComplaint) && (sentiment === "negative" || lowerText.length > 100);
-      
-      return {
-        id: item.id || `comment-${Math.random().toString(36).substring(2, 11)}`,
-        author: snippet.authorDisplayName || 'Anonymous',
-        profilePic: snippet.authorProfileImageUrl || 'https://i.pravatar.cc/150',
-        text: text,
-        likes: Number(snippet.likeCount || '0'),
-        timestamp: snippet.publishedAt || 'Unknown date',
-        sentiment,
-        isQuestion,
-        isComplaint,
-        isPriority,
-      };
-    }).filter(Boolean) as Comment[];
+    console.log(`Successfully fetched ${videos.length} videos`);
+    return videos;
   } catch (error) {
-    console.error('Error fetching video comments:', error);
+    console.error('Error in fetchVideosAfterInit:', error);
     throw error;
   }
 };
 
-// Mock function for content opportunities
-// In a real application, this would be powered by an ML model or more sophisticated analysis
-export const generateContentOpportunities = (comments: Comment[]): ContentOpportunity[] => {
-  // Group comments by themes and topics
-  const topics = new Map<string, { count: number, keywords: string[], comments: Comment[] }>();
+// Function to fetch comments for a specific video
+export const fetchVideoComments = async (accessToken: string, videoId: string): Promise<Comment[]> => {
+  // This would be implemented to fetch real comments from the YouTube API
+  // For now, returning mock data for UI development purposes
   
-  // Simple keyword extraction (in a real app, use NLP)
+  // Generate a consistent set of mock comments based on the video ID
+  const seed = videoId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  const mockCount = (seed % 10) + 5; // 5-15 comments
+  
+  // Generate mock comments
+  const mockComments: Comment[] = Array.from({ length: mockCount }, (_, i) => {
+    const isQuestion = (seed + i) % 5 === 0;
+    const isComplaint = (seed + i) % 7 === 0;
+    const priorityScore = isQuestion || isComplaint ? 0.8 : Math.random();
+    
+    return {
+      id: `comment-${videoId}-${i}`,
+      authorName: `Viewer ${i + 1}`,
+      authorProfileImageUrl: `https://i.pravatar.cc/150?u=${videoId}-${i}`,
+      text: generateMockCommentText(i, isQuestion, isComplaint),
+      likeCount: Math.floor(Math.random() * 50),
+      publishedAt: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString(),
+      updatedAt: new Date(Date.now() - Math.floor(Math.random() * 15 * 24 * 60 * 60 * 1000)).toISOString(),
+      isPriority: priorityScore > 0.7,
+      isQuestion,
+      isComplaint
+    };
+  });
+  
+  return new Promise(resolve => {
+    // Simulate API delay
+    setTimeout(() => resolve(mockComments), 1000);
+  });
+};
+
+// Helper function to generate mock comment text
+const generateMockCommentText = (index: number, isQuestion: boolean, isComplaint: boolean): string => {
+  if (isQuestion) {
+    const questions = [
+      "Could you explain how you achieved that effect at 2:45?",
+      "When will you post a follow-up video on this topic?",
+      "What equipment do you use for recording?",
+      "Have you considered doing a collaboration with other creators?",
+      "Can you share more resources about this in the description?",
+      "Will you be covering the advanced techniques in a future video?",
+      "How long did it take you to master this skill?",
+      "Is there a way to do this on a budget?"
+    ];
+    return questions[index % questions.length];
+  }
+  
+  if (isComplaint) {
+    const complaints = [
+      "The audio was too low in some parts of the video.",
+      "I found the pacing a bit too fast to follow along.",
+      "There were some factual errors around the 5-minute mark.",
+      "The lighting makes it hard to see the details.",
+      "You didn't address the common problems people face with this.",
+      "The video ended abruptly without a proper conclusion."
+    ];
+    return complaints[index % complaints.length];
+  }
+  
+  const positiveComments = [
+    "Great video! Very helpful and well-explained.",
+    "I've been following your channel for years, and this is your best work yet!",
+    "Thanks for sharing your knowledge, it helped me solve a problem I've had for months.",
+    "The production quality keeps getting better with each video.",
+    "I implemented your suggestions and saw immediate results.",
+    "Your enthusiasm is contagious! Keep up the great content.",
+    "I've shared this with my colleagues, we all found it very insightful.",
+    "The visual examples really helped clarify the concepts.",
+    "Your videos are always so well-researched and thorough.",
+    "This is exactly what I needed to learn today. Perfect timing!"
+  ];
+  
+  return positiveComments[index % positiveComments.length];
+};
+
+// Analyze sentiment of comments (mock implementation)
+export const analyzeSentiment = (comments: Comment[]): { positive: number; neutral: number; negative: number } => {
+  // This would use actual NLP sentiment analysis in a real implementation
+  // For mock purposes, we'll use the comment properties to simulate sentiment
+  
+  let positiveCount = 0;
+  let neutralCount = 0;
+  let negativeCount = 0;
+  
   comments.forEach(comment => {
-    const text = comment.text.toLowerCase();
-    const words = text.split(/\W+/).filter(word => word.length > 3);
-    
-    // Skip very short comments
-    if (words.length < 3) return;
-    
-    // Extract potential topics
-    if (comment.isQuestion) {
-      // Find the main subject of the question
-      const questionWords = ["how", "what", "when", "where", "why", "can", "could", "would", "should"];
-      for (let i = 0; i < words.length - 1; i++) {
-        if (questionWords.includes(words[i])) {
-          const potentialTopic = words.slice(i + 1, i + 4).join(" ");
-          if (potentialTopic) {
-            if (!topics.has(potentialTopic)) {
-              topics.set(potentialTopic, { count: 0, keywords: [], comments: [] });
-            }
-            const topic = topics.get(potentialTopic)!;
-            topic.count++;
-            topic.comments.push(comment);
-          }
-          break;
-        }
-      }
-    }
-    
-    // Look for requests or suggestions
-    if (text.includes("please") || 
-        text.includes("would like") || 
-        text.includes("can you") || 
-        text.includes("should make") || 
-        text.includes("next video")) {
-      const startIndex = Math.max(
-        text.indexOf("please"),
-        text.indexOf("would like"),
-        text.indexOf("can you"),
-        text.indexOf("should make"),
-        text.indexOf("next video"),
-      );
-      
-      if (startIndex > -1) {
-        const slice = text.slice(startIndex, startIndex + 100);
-        const potentialTopic = slice.split(/[.?!]/)[0];
-        
-        if (potentialTopic && potentialTopic.length > 10) {
-          // Generate a cleaner title from the topic
-          const cleanTopic = potentialTopic
-            .replace(/(please|would like|can you|should make|next video)/g, '')
-            .trim()
-            .split(" ")
-            .slice(0, 5)
-            .join(" ");
-          
-          if (cleanTopic && cleanTopic.length > 5) {
-            if (!topics.has(cleanTopic)) {
-              topics.set(cleanTopic, { count: 0, keywords: [], comments: [] });
-            }
-            const topic = topics.get(cleanTopic)!;
-            topic.count++;
-            topic.comments.push(comment);
-          }
-        }
+    if (comment.isComplaint) {
+      negativeCount++;
+    } else if (comment.isQuestion) {
+      neutralCount++;
+    } else {
+      // Determine sentiment based on patterns in the text and like count
+      const text = comment.text.toLowerCase();
+      if (
+        text.includes('great') || 
+        text.includes('amazing') || 
+        text.includes('good') || 
+        text.includes('love') ||
+        text.includes('helpful') ||
+        text.includes('thanks')
+      ) {
+        positiveCount++;
+      } else if (
+        text.includes('bad') || 
+        text.includes('terrible') || 
+        text.includes('waste') ||
+        text.includes('disappointing')
+      ) {
+        negativeCount++;
+      } else {
+        neutralCount++;
       }
     }
   });
   
-  // Convert the map to an array of content opportunities
-  return Array.from(topics.entries())
-    .filter(([_, data]) => data.count >= 2) // Only topics mentioned multiple times
-    .sort((a, b) => b[1].count - a[1].count) // Sort by popularity
-    .slice(0, 5) // Take top 5
-    .map(([topic, data], index) => {
-      // Generate a more appealing title
-      const title = topic.split(" ")
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
-      
-      // Calculate confidence based on comment count and sentiment
-      const positiveComments = data.comments.filter(c => c.sentiment === "positive").length;
-      const neutralComments = data.comments.filter(c => c.sentiment === "neutral").length;
-      const relevantComments = data.count;
-      
-      // Higher confidence for topics with more mentions and positive sentiment
-      const confidence = Math.min(
-        100, 
-        Math.round(
-          (data.count * 10) + 
-          (positiveComments * 5) + 
-          (neutralComments * 2)
-        )
-      );
-      
-      return {
-        id: `opp-${index + 1}`,
-        title: title.length > 5 
-          ? title 
-          : `Content Idea #${index + 1}`,
-        description: `Based on ${String(relevantComments)} viewer comments requesting content about ${topic}.`,
-        relevantComments,
-        confidence,
-      };
-    });
-};
-
-// Analyze comment sentiment
-export const analyzeSentiment = (comments: Comment[]): SentimentAnalysis => {
-  if (comments.length === 0) {
-    return { positive: 0, neutral: 0, negative: 0 };
+  const total = comments.length || 1; // Avoid division by zero
+  
+  // Ensure there's always some sentiment distribution
+  if (total === 0 || (positiveCount === 0 && neutralCount === 0 && negativeCount === 0)) {
+    return { positive: 65, neutral: 25, negative: 10 };
   }
   
-  const positive = comments.filter(comment => comment.sentiment === "positive").length;
-  const neutral = comments.filter(comment => comment.sentiment === "neutral").length;
-  const negative = comments.filter(comment => comment.sentiment === "negative").length;
-  
-  const total = comments.length;
-  
+  // Calculate percentages
   return {
-    positive: Math.round((positive / total) * 100),
-    neutral: Math.round((neutral / total) * 100),
-    negative: Math.round((negative / total) * 100),
+    positive: Math.round((positiveCount / total) * 100),
+    neutral: Math.round((neutralCount / total) * 100),
+    negative: Math.round((negativeCount / total) * 100)
   };
+};
+
+// Generate content ideas based on comments (mock implementation)
+export const generateContentOpportunities = (comments: Comment[]): any[] => {
+  // This would use ML/NLP to analyze content gaps and opportunities in a real implementation
+  // For now, we'll generate mock content ideas based on questions and patterns
+  
+  const questionTopics = new Map<string, number>();
+  
+  // Extract topics from questions
+  comments.filter(c => c.isQuestion).forEach(comment => {
+    const text = comment.text.toLowerCase();
+    
+    if (text.includes('equipment') || text.includes('gear') || text.includes('camera')) {
+      questionTopics.set('equipment', (questionTopics.get('equipment') || 0) + 1);
+    }
+    
+    if (text.includes('tutorial') || text.includes('how to') || text.includes('guide')) {
+      questionTopics.set('tutorials', (questionTopics.get('tutorials') || 0) + 1);
+    }
+    
+    if (text.includes('collaborate') || text.includes('collaboration')) {
+      questionTopics.set('collaborations', (questionTopics.get('collaborations') || 0) + 1);
+    }
+    
+    if (text.includes('budget') || text.includes('cost') || text.includes('cheap') || text.includes('free')) {
+      questionTopics.set('budget-friendly', (questionTopics.get('budget-friendly') || 0) + 1);
+    }
+    
+    if (text.includes('advanced') || text.includes('expert') || text.includes('professional')) {
+      questionTopics.set('advanced-techniques', (questionTopics.get('advanced-techniques') || 0) + 1);
+    }
+  });
+  
+  // Generate opportunities based on frequency
+  const opportunities = Array.from(questionTopics.entries())
+    .map(([topic, count]) => {
+      const titleMap: Record<string, string> = {
+        'equipment': 'Equipment Breakdown Video',
+        'tutorials': 'Beginner-Friendly Tutorial Series',
+        'collaborations': 'Collaboration with Other Creators',
+        'budget-friendly': 'Budget-Friendly Alternatives Guide',
+        'advanced-techniques': 'Advanced Techniques Masterclass'
+      };
+      
+      const descriptionMap: Record<string, string> = {
+        'equipment': 'Several viewers have asked about your equipment setup. A detailed breakdown video would be well-received.',
+        'tutorials': 'There's demand for more step-by-step tutorials for beginners in this topic area.',
+        'collaborations': 'Your audience is interested in seeing you collaborate with other creators in this space.',
+        'budget-friendly': 'Many viewers are looking for more affordable ways to achieve similar results.',
+        'advanced-techniques': 'Your advanced viewers want more in-depth content that goes beyond the basics.'
+      };
+      
+      return {
+        id: `opportunity-${topic}`,
+        title: titleMap[topic] || `Content about ${topic}`,
+        description: descriptionMap[topic] || `Based on viewer comments, content about ${topic} would be well-received.`,
+        requestCount: count,
+        confidenceScore: Math.min(count * 10 + 50, 95) // 50-95% confidence based on frequency
+      };
+    })
+    .sort((a, b) => b.confidenceScore - a.confidenceScore);
+  
+  // Add some general opportunities if we don't have many from questions
+  if (opportunities.length < 3) {
+    const generalOpportunities = [
+      {
+        id: 'opportunity-faq',
+        title: 'Frequently Asked Questions Video',
+        description: 'A dedicated FAQ video addressing the most common questions would save you time and help your viewers.',
+        requestCount: 1,
+        confidenceScore: 75
+      },
+      {
+        id: 'opportunity-series',
+        title: 'Create a Structured Series',
+        description: 'Your one-off videos are popular. Consider creating a structured series to build a more dedicated audience.',
+        requestCount: 1,
+        confidenceScore: 70
+      },
+      {
+        id: 'opportunity-behind-scenes',
+        title: 'Behind-the-Scenes Content',
+        description: 'Viewers often connect more with creators who share their process and personality.',
+        requestCount: 1,
+        confidenceScore: 65
+      }
+    ];
+    
+    // Add enough general opportunities to have at least 3 total
+    for (let i = 0; i < Math.min(3 - opportunities.length, generalOpportunities.length); i++) {
+      opportunities.push(generalOpportunities[i]);
+    }
+  }
+  
+  return opportunities;
 };

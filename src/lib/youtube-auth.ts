@@ -1,120 +1,16 @@
+
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-
-// YouTube API OAuth 2.0 credentials
-const API_KEY = ''; // Keep as empty string
-const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.googleusercontent.com';
-const REDIRECT_URI = window.location.origin;
-const SCOPES = [
-  'https://www.googleapis.com/auth/youtube.readonly',
-  'https://www.googleapis.com/auth/youtube.force-ssl'
-];
-
-// Interfaces
-export interface AuthState {
-  isSignedIn: boolean;
-  accessToken: string | null;
-  user: {
-    name: string;
-    email: string;
-    picture: string;
-  } | null;
-}
-
-// Initial auth state
-const initialAuthState: AuthState = {
-  isSignedIn: false,
-  accessToken: null,
-  user: null
-};
-
-// Check if credentials are configured
-const areCredentialsConfigured = () => {
-  return CLIENT_ID.trim() !== '';
-};
-
-// Load the Google Identity Services client library
-const loadGisClient = async () => {
-  return new Promise<void>((resolve, reject) => {
-    if (document.getElementById('google-gis-script')) {
-      console.log('Google Identity Services already loaded');
-      resolve();
-      return;
-    }
-    
-    const script = document.createElement('script');
-    script.id = 'google-gis-script';
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      console.log('Google Identity Services loaded successfully');
-      // Add a small delay to ensure the script is fully initialized
-      setTimeout(() => {
-        if (window.google && window.google.accounts) {
-          resolve();
-        } else {
-          console.warn('Google Identity Services loaded but not available yet, retrying...');
-          // Try again in 100ms
-          setTimeout(() => {
-            if (window.google && window.google.accounts) {
-              resolve();
-            } else {
-              reject(new Error('Google Identity Services not available after loading'));
-            }
-          }, 100);
-        }
-      }, 50);
-    };
-    script.onerror = (error) => {
-      console.error('Error loading Google Identity Services:', error);
-      reject(error);
-    };
-    document.body.appendChild(script);
-  });
-};
-
-// Load the Google API client library
-const loadGapiClient = async () => {
-  return new Promise<void>((resolve, reject) => {
-    if (document.getElementById('google-gapi-script')) {
-      console.log('Google API client already loaded');
-      resolve();
-      return;
-    }
-    
-    const script = document.createElement('script');
-    script.id = 'google-gapi-script';
-    script.src = 'https://apis.google.com/js/api.js';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      // Initialize the gapi.client
-      window.gapi.load('client', async () => {
-        try {
-          if (!areCredentialsConfigured()) {
-            throw new Error('YouTube API credentials not configured');
-          }
-          
-          await window.gapi.client.init({
-            apiKey: API_KEY,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
-          });
-          console.log('Google API client initialized successfully');
-          resolve();
-        } catch (error) {
-          console.error('Error initializing Google API client:', error);
-          reject(error);
-        }
-      });
-    };
-    script.onerror = (error) => {
-      console.error('Error loading Google API client:', error);
-      reject(error);
-    };
-    document.body.appendChild(script);
-  });
-};
+import { AuthState } from './youtube/types';
+import { loadGapiClient, loadGisClient } from './youtube/api-loaders';
+import { fetchUserProfile } from './youtube/user-profile';
+import { 
+  CLIENT_ID, 
+  REDIRECT_URI, 
+  SCOPES, 
+  initialAuthState, 
+  areCredentialsConfigured 
+} from './youtube/config';
 
 // Hook for YouTube authentication
 export const useYouTubeAuth = () => {
@@ -244,68 +140,6 @@ export const useYouTubeAuth = () => {
       // Nothing to clean up for now
     };
   }, [credentialsConfigured, toast]);
-
-  // Helper function to fetch user profile - improved error handling and debugging
-  const fetchUserProfile = async (accessToken: string) => {
-    if (!accessToken) {
-      console.error('No access token provided for fetchUserProfile');
-      throw new Error('Missing access token');
-    }
-    
-    console.log(`Attempting to fetch user profile with token length: ${accessToken.length}`);
-    
-    return new Promise((resolve, reject) => {
-      // Create a direct script tag to bypass CORS
-      const script = document.createElement('script');
-      const callbackName = 'handleGoogleUserProfile_' + Math.random().toString(36).substring(2, 15);
-      
-      // Create a global callback function that Google will call
-      window[callbackName] = (response: any) => {
-        // Clean up
-        delete window[callbackName];
-        document.body.removeChild(script);
-        
-        if (response && response.name) {
-          console.log('User profile data retrieved successfully via JSONP');
-          resolve({
-            name: response.name || 'YouTube User',
-            email: response.email || '',
-            picture: response.picture || ''
-          });
-        } else if (response && response.error) {
-          console.error('Google API returned an error:', response.error);
-          reject(new Error(`API error: ${response.error.message || 'Unknown error'}`));
-        } else {
-          console.error('Invalid response format from Google API');
-          reject(new Error('Invalid response format'));
-        }
-      };
-      
-      // Create a script URL with the callback
-      const url = `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}&callback=${callbackName}`;
-      script.src = url;
-      script.async = true;
-      script.onerror = () => {
-        delete window[callbackName];
-        document.body.removeChild(script);
-        console.error('Script loading error for user profile fetch');
-        reject(new Error('Failed to load user profile script'));
-      };
-      
-      // Add the script to the document
-      document.body.appendChild(script);
-      
-      // Set a timeout in case Google never calls our callback
-      setTimeout(() => {
-        if (window[callbackName]) {
-          delete window[callbackName];
-          document.body.removeChild(script);
-          console.error('Timeout while fetching user profile via JSONP');
-          reject(new Error('Request timed out'));
-        }
-      }, 15000); // 15 seconds timeout
-    });
-  };
 
   // Helper function to handle successful authentication
   const handleAuthSuccess = async (accessToken: string) => {
@@ -561,41 +395,3 @@ export const useYouTubeAuth = () => {
     signOut
   };
 };
-
-// Add global type declarations for the Google API client
-declare global {
-  interface Window {
-    [key: string]: any; // Add this to allow dynamic callback functions
-    gapi: {
-      load: (
-        apiName: string,
-        callback: () => void
-      ) => void;
-      client: {
-        init: (config: {
-          apiKey?: string;
-          clientId?: string;
-          scope?: string;
-          discoveryDocs?: string[];
-        }) => Promise<void>;
-        setToken: (token: { access_token: string } | null) => void;
-        setApiKey: (apiKey: string) => void;
-        youtube: any;
-        load: (apiName: string, version: string, callback: () => void) => void;
-      };
-    };
-    google: {
-      accounts: {
-        oauth2: {
-          initTokenClient: (config: {
-            client_id: string;
-            scope: string;
-            redirect_uri?: string;
-            callback: (response: any) => void;
-            error_callback?: (error: any) => void;
-          }) => any;
-        };
-      };
-    };
-  }
-}
