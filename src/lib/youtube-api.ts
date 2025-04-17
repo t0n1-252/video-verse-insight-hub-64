@@ -42,26 +42,6 @@ export interface ContentOpportunity {
   confidence: number;
 }
 
-// Define a type for the gapi.client object to avoid TypeScript errors
-declare global {
-  interface Window {
-    gapi: {
-      client: {
-        init: (config: { 
-          apiKey?: string; 
-          clientId?: string; 
-          scope?: string; 
-          discoveryDocs?: string[]; 
-        }) => Promise<void>;
-        setToken: (token: { access_token: string }) => void;
-        setApiKey: (apiKey: string) => void;
-        youtube: any;
-      };
-      load: (apiName: string, callback: () => void) => void;
-    };
-  }
-}
-
 // Fetch channel videos using the browser-compatible gapi client
 export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> => {
   try {
