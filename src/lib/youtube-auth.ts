@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 // YouTube API OAuth 2.0 credentials
-// In a production app, these would be environment variables
-const API_KEY = 'YOUR_API_KEY'; // Replace with your actual API key when ready
-const CLIENT_ID = 'YOUR_CLIENT_ID'; // Replace with your actual client ID when ready
+const API_KEY = ''; // We'll keep this empty for now, as no API key was provided
+const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.googleusercontent.com';
+const CLIENT_SECRET = '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';
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
   'https://www.googleapis.com/auth/youtube.force-ssl'
