@@ -2,9 +2,22 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const APICredentialsGuide = () => {
+  const { toast } = useToast();
+  const currentOrigin = window.location.origin;
+
+  const copyToClipboard = (text: string, description: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: description,
+      duration: 3000,
+    });
+  };
+
   return (
     <Card className="bg-gray-800 border-gray-700">
       <CardHeader>
@@ -39,20 +52,43 @@ const APICredentialsGuide = () => {
             <li>Go to &quot;APIs &amp; Services&quot; &gt; &quot;Credentials&quot;</li>
             <li>Click &quot;Create Credentials&quot; and select &quot;OAuth client ID&quot;</li>
             <li>Set the application type to &quot;Web application&quot;</li>
-            <li>Add authorized JavaScript origins:
-              <ul className="list-disc list-inside ml-4 text-gray-400">
-                <li>http://localhost:8080 (for local development)</li>
-                <li>Your production domain (if applicable)</li>
-              </ul>
+            <li className="font-semibold text-amber-400">Add authorized JavaScript origins:
+              <div className="flex items-center space-x-2 ml-4 my-2 p-2 bg-gray-800 rounded">
+                <code className="text-white break-all">{currentOrigin}</code>
+                <button 
+                  onClick={() => copyToClipboard(currentOrigin, "Origin copied to clipboard")}
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  <Copy size={16} />
+                </button>
+              </div>
             </li>
-            <li>Add authorized redirect URIs:
-              <ul className="list-disc list-inside ml-4 text-gray-400">
-                <li>http://localhost:8080 (for local development)</li>
-                <li>Your production domain (if applicable)</li>
-              </ul>
+            <li className="font-semibold text-amber-400">Add authorized redirect URIs:
+              <div className="flex items-center space-x-2 ml-4 my-2 p-2 bg-gray-800 rounded">
+                <code className="text-white break-all">{currentOrigin}</code>
+                <button 
+                  onClick={() => copyToClipboard(currentOrigin, "Redirect URI copied to clipboard")}
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  <Copy size={16} />
+                </button>
+              </div>
+              <div className="text-sm text-gray-400 ml-4 mt-1">
+                Note: For production, add your actual domain. For local development, use http://localhost:5173 or whichever port you use.
+              </div>
             </li>
             <li>Click &quot;Create&quot; and note down your Client ID and Client Secret</li>
           </ol>
+        </div>
+        
+        <div className="bg-amber-900/30 border border-amber-700/50 p-4 rounded-md">
+          <h3 className="text-lg font-medium text-amber-400 mb-2">Common OAuth Errors & Solutions</h3>
+          <ul className="list-disc list-inside space-y-2 text-gray-300">
+            <li><span className="font-semibold">redirect_uri_mismatch</span>: Make sure the exact URI of this application is listed in the authorized redirect URIs</li>
+            <li><span className="font-semibold">JavaScript origin mismatch</span>: Make sure the exact origin (protocol, domain, port) is listed in authorized JavaScript origins</li>
+            <li><span className="font-semibold">Invalid client</span>: Make sure your client ID is correct and belongs to this project</li>
+            <li>For localhost testing, add both <code className="bg-gray-700 px-1 rounded">http://localhost:5173</code> (or your Vite port) and <code className="bg-gray-700 px-1 rounded">http://127.0.0.1:5173</code></li>
+          </ul>
         </div>
         
         <div className="bg-gray-900 p-4 rounded-md">
@@ -61,27 +97,33 @@ const APICredentialsGuide = () => {
             <li>Open the file <code className="bg-gray-700 px-1 py-0.5 rounded text-sm">src/lib/youtube-auth.ts</code></li>
             <li>Replace the placeholders with your credentials:
               <pre className="bg-gray-700 p-2 rounded text-sm overflow-x-auto mt-2">
-{`const API_KEY = 'YOUR_API_KEY';
+{`const API_KEY = 'YOUR_API_KEY'; // optional
 const CLIENT_ID = 'YOUR_CLIENT_ID';`}
               </pre>
             </li>
           </ol>
         </div>
         
-        <div className="bg-amber-900/30 border border-amber-700/50 p-4 rounded-md">
-          <h3 className="text-lg font-medium text-amber-400 mb-2">Important Security Notes</h3>
+        <div className="bg-green-900/30 border border-green-700/50 p-4 rounded-md">
+          <h3 className="text-lg font-medium text-green-400 mb-2">Troubleshooting Tips</h3>
           <ul className="list-disc list-inside space-y-2 text-gray-300">
-            <li>In a production environment, you should not store API keys directly in your code</li>
-            <li>Consider using environment variables or a secure backend service</li>
-            <li>Be sure to restrict your API key in the Google Cloud Console</li>
+            <li>After adding new URIs, wait a few minutes for changes to propagate</li>
+            <li>Clear your browser cache and cookies for Google domains</li>
+            <li>Try using incognito/private browsing mode</li>
+            <li>Make sure the domain matches exactly (including http/https, and with no trailing slash)</li>
+            <li>If testing locally, ensure you're using the same port consistently</li>
           </ul>
         </div>
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+        <Button variant="outline" className="w-full" onClick={() => window.open('https://console.cloud.google.com/apis/credentials', '_blank')}>
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Manage OAuth Credentials
+        </Button>
         <Button variant="outline" className="w-full" onClick={() => window.open('https://console.cloud.google.com/', '_blank')}>
           <ExternalLink className="h-4 w-4 mr-2" />
-          Open Google Cloud Console
+          Google Cloud Console
         </Button>
       </CardFooter>
     </Card>

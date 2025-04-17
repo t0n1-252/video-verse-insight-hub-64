@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -5,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 const API_KEY = ''; // Keep as empty string
 const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.googleusercontent.com';
 const CLIENT_SECRET = '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';
+const REDIRECT_URI = window.location.origin;
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
   'https://www.googleapis.com/auth/youtube.force-ssl'
@@ -50,7 +52,9 @@ const loadGapiClient = async () => {
             apiKey: API_KEY,
             clientId: CLIENT_ID,
             scope: SCOPES.join(' '),
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest'],
+            ux_mode: 'popup',
+            redirect_uri: REDIRECT_URI
           });
           resolve();
         } catch (error) {
@@ -142,6 +146,12 @@ export const useYouTubeAuth = () => {
             description: "Your YouTube API client ID is invalid. Please check your configuration.",
             variant: "destructive",
           });
+        } else if (error.message.includes('redirect_uri_mismatch') || error.message.includes('JavaScript origin')) {
+          toast({
+            title: "Authorization Error",
+            description: "Redirect URI or JavaScript origin mismatch. Make sure they're correctly configured in Google Cloud Console.",
+            variant: "destructive",
+          });
         }
       } finally {
         setIsInitializing(false);
@@ -174,7 +184,13 @@ export const useYouTubeAuth = () => {
       }
       
       const googleAuth = window.gapi.auth2.getAuthInstance();
-      const googleUser = await googleAuth.signIn();
+      const options = {
+        scope: SCOPES.join(' '),
+        ux_mode: 'popup',
+        redirect_uri: REDIRECT_URI
+      };
+      
+      const googleUser = await googleAuth.signIn(options);
       const profile = googleUser.getBasicProfile();
       const authResponse = googleUser.getAuthResponse();
       
@@ -194,11 +210,29 @@ export const useYouTubeAuth = () => {
       const error = err as Error;
       setError(error);
       
-      // Show more specific toast for invalid client error
+      // Show more specific toast for common errors
       if (error.message.includes('invalid_client')) {
         toast({
           title: "Authentication Error",
           description: "Your YouTube API client ID is invalid. Please check your configuration.",
+          variant: "destructive",
+        });
+      } else if (error.message.includes('redirect_uri_mismatch') || error.message.includes('JavaScript origin')) {
+        toast({
+          title: "Authorization Error",
+          description: "Redirect URI or JavaScript origin mismatch. Make sure they're correctly configured in Google Cloud Console.",
+          variant: "destructive",
+        });
+      } else if (error.message.includes('popup_closed_by_user')) {
+        toast({
+          title: "Authentication Cancelled",
+          description: "You closed the login popup before completing authentication.",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Authentication Error",
+          description: "An error occurred during YouTube authentication. Check the console for details.",
           variant: "destructive",
         });
       }
@@ -249,6 +283,8 @@ declare global {
           clientId: string;
           scope: string;
           discoveryDocs: string[];
+          ux_mode?: string;
+          redirect_uri?: string;
         }) => Promise<void>;
         setApiKey: (apiKey: string) => void;
         setToken: (token: { access_token: string }) => void;
@@ -260,7 +296,12 @@ declare global {
             get: () => boolean;
             listen: (callback: (isSignedIn: boolean) => void) => void;
           };
-          signIn: () => Promise<any>;
+          signIn: (options?: {
+            scope?: string;
+            prompt?: string;
+            ux_mode?: string;
+            redirect_uri?: string;
+          }) => Promise<any>;
           signOut: () => Promise<void>;
           currentUser: {
             get: () => {
