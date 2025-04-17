@@ -35,21 +35,19 @@ const loadGapiClient = async () => {
     script.src = 'https://apis.google.com/js/api.js';
     script.onload = () => {
       // Initialize the gapi.client
-      window.gapi.load('client:auth2', () => {
-        window.gapi.client
-          .init({
+      window.gapi.load('client:auth2', async () => {
+        try {
+          await window.gapi.client.init({
             apiKey: API_KEY,
             clientId: CLIENT_ID,
             scope: SCOPES.join(' '),
             discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
-          })
-          .then(() => {
-            resolve();
-          })
-          .catch((error: any) => {
-            console.error('Error initializing Google API client:', error);
-            reject(error);
           });
+          resolve();
+        } catch (error) {
+          console.error('Error initializing Google API client:', error);
+          reject(error);
+        }
       });
     };
     script.onerror = (error) => {
@@ -197,6 +195,8 @@ declare global {
           scope: string;
           discoveryDocs: string[];
         }) => Promise<void>;
+        setApiKey: (apiKey: string) => void;
+        setToken: (token: { access_token: string }) => void;
         youtube: any;
       };
       auth2: {

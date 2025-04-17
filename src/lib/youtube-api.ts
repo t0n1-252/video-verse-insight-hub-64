@@ -1,6 +1,4 @@
-
 // YouTube API service functions
-import { youtube_v3 } from '@googleapis/youtube';
 
 // Define interfaces for video types
 export interface Video {
@@ -44,58 +42,53 @@ export interface ContentOpportunity {
   confidence: number;
 }
 
-// Helper function to create YouTube client
-export const createYouTubeClient = (accessToken: string) => {
-  return new youtube_v3.Youtube({
-    auth: accessToken,
-  });
-};
-
-// Get channel videos
+// Fetch channel videos using the browser-compatible gapi client
 export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> => {
   try {
-    const youtube = createYouTubeClient(accessToken);
+    // Set the access token for this request
+    window.gapi.client.setApiKey('');
+    window.gapi.client.setToken({ access_token: accessToken });
     
     // Get the authenticated user's channel ID
-    const channelResponse = await youtube.channels.list({
-      part: ['id', 'snippet'],
-      mine: true,
+    const channelResponse = await window.gapi.client.youtube.channels.list({
+      part: 'id,snippet',
+      mine: true
     });
     
-    if (!channelResponse.data.items || channelResponse.data.items.length === 0) {
+    if (!channelResponse.result.items || channelResponse.result.items.length === 0) {
       throw new Error('No channel found for the authenticated user');
     }
     
-    const channelId = channelResponse.data.items[0].id;
+    const channelId = channelResponse.result.items[0].id;
     
     // Get videos from the user's channel
-    const videosResponse = await youtube.search.list({
-      part: ['snippet'],
+    const videosResponse = await window.gapi.client.youtube.search.list({
+      part: 'snippet',
       channelId: channelId,
       maxResults: 50,
       order: 'date',
-      type: ['video'],
+      type: 'video'
     });
     
-    if (!videosResponse.data.items) {
+    if (!videosResponse.result.items) {
       return [];
     }
     
     // Get additional video details (view counts, etc.)
-    const videoIds = videosResponse.data.items.map(item => item.id?.videoId).filter(Boolean) as string[];
+    const videoIds = videosResponse.result.items.map(item => item.id?.videoId).filter(Boolean);
     if (videoIds.length === 0) return [];
     
-    const videoDetailsResponse = await youtube.videos.list({
-      part: ['statistics', 'snippet', 'contentDetails'],
-      id: videoIds,
+    const videoDetailsResponse = await window.gapi.client.youtube.videos.list({
+      part: 'statistics,snippet,contentDetails',
+      id: videoIds.join(',')
     });
     
-    if (!videoDetailsResponse.data.items) {
+    if (!videoDetailsResponse.result.items) {
       return [];
     }
     
     // Map the response to our Video interface
-    return videoDetailsResponse.data.items.map(video => {
+    return videoDetailsResponse.result.items.map(video => {
       const snippet = video.snippet;
       const statistics = video.statistics;
       
@@ -121,22 +114,24 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
 // Get video comments
 export const fetchVideoComments = async (accessToken: string, videoId: string): Promise<Comment[]> => {
   try {
-    const youtube = createYouTubeClient(accessToken);
+    // Set the access token for this request
+    window.gapi.client.setApiKey('');
+    window.gapi.client.setToken({ access_token: accessToken });
     
-    const commentsResponse = await youtube.commentThreads.list({
-      part: ['snippet', 'replies'],
+    const commentsResponse = await window.gapi.client.youtube.commentThreads.list({
+      part: 'snippet,replies',
       videoId: videoId,
       maxResults: 100,
-      order: 'relevance',
+      order: 'relevance'
     });
     
-    if (!commentsResponse.data.items) {
+    if (!commentsResponse.result.items) {
       return [];
     }
     
     // Map comments to our Comment interface with mock sentiment analysis
     // In a real app, you would use a proper sentiment analysis API or ML model
-    return commentsResponse.data.items.map(item => {
+    return commentsResponse.result.items.map(item => {
       const snippet = item.snippet?.topLevelComment?.snippet;
       if (!snippet) return null;
       
