@@ -22,7 +22,6 @@ const DashboardWithYoutube = () => {
   const { accessToken, isSignedIn } = useYouTubeAuth();
   const { toast } = useToast();
 
-  // Update this useEffect to react to isSignedIn as well
   useEffect(() => {
     if (isSignedIn && accessToken) {
       loadVideos();

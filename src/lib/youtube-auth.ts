@@ -38,7 +38,14 @@ const areCredentialsConfigured = () => {
 // Load the Google Identity Services client library
 const loadGisClient = async () => {
   return new Promise<void>((resolve, reject) => {
+    if (document.getElementById('google-gis-script')) {
+      console.log('Google Identity Services already loaded');
+      resolve();
+      return;
+    }
+    
     const script = document.createElement('script');
+    script.id = 'google-gis-script';
     script.src = 'https://accounts.google.com/gsi/client';
     script.onload = () => {
       console.log('Google Identity Services loaded successfully');
@@ -55,7 +62,14 @@ const loadGisClient = async () => {
 // Load the Google API client library
 const loadGapiClient = async () => {
   return new Promise<void>((resolve, reject) => {
+    if (document.getElementById('google-gapi-script')) {
+      console.log('Google API client already loaded');
+      resolve();
+      return;
+    }
+    
     const script = document.createElement('script');
+    script.id = 'google-gapi-script';
     script.src = 'https://apis.google.com/js/api.js';
     script.onload = () => {
       // Initialize the gapi.client
@@ -90,8 +104,10 @@ export const useYouTubeAuth = () => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [credentialsConfigured, setCredentialsConfigured] = useState(areCredentialsConfigured());
+  const [credentialsConfigured] = useState(areCredentialsConfigured());
   const [tokenClient, setTokenClient] = useState<any>(null);
+  
+  // Fix for React Hook order error: bring toast initialization to top level
   const { toast } = useToast();
 
   // Initialize Google API clients
@@ -123,6 +139,13 @@ export const useYouTubeAuth = () => {
               console.error('Token client error:', error);
               setError(new Error(error.toString()));
               setIsInitializing(false);
+              
+              // Show toast for error
+              toast({
+                title: "Authentication Error",
+                description: "Failed to authenticate with Google. Please try again.",
+                variant: "destructive",
+              });
             }
           });
           
@@ -192,7 +215,7 @@ export const useYouTubeAuth = () => {
     return () => {
       // Nothing to clean up for now
     };
-  }, [toast]);
+  }, [credentialsConfigured, toast]);
 
   // Helper function to handle successful authentication
   const handleAuthSuccess = async (accessToken: string) => {
@@ -201,44 +224,64 @@ export const useYouTubeAuth = () => {
       if (window.gapi && window.gapi.client) {
         window.gapi.client.setToken({ access_token: accessToken });
         
-        // Fetch user profile
-        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
+        // Fetch user profile with error handling
+        try {
+          const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+          
+          if (!response.ok) {
+            console.error(`Failed to fetch user profile: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to fetch user profile: ${response.status}`);
           }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch user profile');
+          
+          const userData = await response.json();
+          
+          const user = {
+            name: userData.name || 'YouTube User',
+            email: userData.email || '',
+            picture: userData.picture || ''
+          };
+          
+          // Save authentication state
+          setAuthState({
+            isSignedIn: true,
+            accessToken,
+            user
+          });
+          
+          // Store in localStorage for persistence
+          localStorage.setItem('youtube_access_token', accessToken);
+          localStorage.setItem('youtube_user', JSON.stringify(user));
+          
+          toast({
+            title: "Successfully connected",
+            description: `Welcome, ${user.name}! Your YouTube account is now connected.`,
+            variant: "default",
+          });
+        } catch (error) {
+          console.error('Error getting user profile:', error);
+          // Still set the token even if we couldn't get user details
+          setAuthState({
+            isSignedIn: true,
+            accessToken,
+            user: null
+          });
+          
+          // Store token in localStorage
+          localStorage.setItem('youtube_access_token', accessToken);
+          
+          toast({
+            title: "Partially connected",
+            description: "Your YouTube account is connected, but we couldn't fetch your profile details.",
+            variant: "default",
+          });
         }
-        
-        const userData = await response.json();
-        
-        const user = {
-          name: userData.name || 'YouTube User',
-          email: userData.email || '',
-          picture: userData.picture || ''
-        };
-        
-        // Save authentication state
-        setAuthState({
-          isSignedIn: true,
-          accessToken,
-          user
-        });
-        
-        // Store in localStorage for persistence
-        localStorage.setItem('youtube_access_token', accessToken);
-        localStorage.setItem('youtube_user', JSON.stringify(user));
-        
-        toast({
-          title: "Successfully connected",
-          description: `Welcome, ${user.name}! Your YouTube account is now connected.`,
-          variant: "default",
-        });
       }
     } catch (error) {
-      console.error('Error getting user profile:', error);
+      console.error('Error in handleAuthSuccess:', error);
       // Still set the token even if we couldn't get user details
       setAuthState({
         isSignedIn: true,
@@ -262,12 +305,21 @@ export const useYouTubeAuth = () => {
       }
       
       if (!tokenClient) {
-        throw new Error('Token client not initialized');
+        const error = new Error('Token client not initialized');
+        toast({
+          title: "Not Ready",
+          description: "Authentication system is still initializing. Please wait a moment and try again.",
+          variant: "destructive",
+        });
+        throw error;
       }
       
-      // Request an access token
+      // Request an access token with popup settings to reduce COOP issues
       tokenClient.requestAccessToken({
-        prompt: 'consent'
+        prompt: '',
+        hint: '',
+        state: REDIRECT_URI,
+        enable_serial_consent: true
       });
       
       return true;
@@ -276,40 +328,29 @@ export const useYouTubeAuth = () => {
       const error = err as Error;
       setError(error);
       
+      // Default error message
+      let errorTitle = "Authentication Error";
+      let errorDescription = "An error occurred during YouTube authentication. Check the console for details.";
+      
       // Show more specific toast for common errors
-      if (error.message && typeof error.message === 'string') {
+      if (error && error.message && typeof error.message === 'string') {
         if (error.message.includes('invalid_client')) {
-          toast({
-            title: "Authentication Error",
-            description: "Your YouTube API client ID is invalid. Please check your configuration.",
-            variant: "destructive",
-          });
+          errorDescription = "Your YouTube API client ID is invalid. Please check your configuration.";
         } else if (error.message.includes('redirect_uri_mismatch') || error.message.includes('JavaScript origin')) {
-          toast({
-            title: "Authorization Error",
-            description: "Redirect URI or JavaScript origin mismatch. Make sure they're correctly configured in Google Cloud Console.",
-            variant: "destructive",
-          });
+          errorDescription = "Redirect URI or JavaScript origin mismatch. Make sure they're correctly configured in Google Cloud Console.";
         } else if (error.message.includes('popup_closed_by_user')) {
-          toast({
-            title: "Authentication Cancelled",
-            description: "You closed the login popup before completing authentication.",
-            variant: "default",
-          });
+          errorTitle = "Authentication Cancelled";
+          errorDescription = "You closed the login popup before completing authentication.";
         } else {
-          toast({
-            title: "Authentication Error",
-            description: error.message || "An error occurred during YouTube authentication.",
-            variant: "destructive",
-          });
+          errorDescription = error.message || errorDescription;
         }
-      } else {
-        toast({
-          title: "Authentication Error",
-          description: "An error occurred during YouTube authentication. Check the console for details.",
-          variant: "destructive",
-        });
       }
+      
+      toast({
+        title: errorTitle,
+        description: errorDescription,
+        variant: "destructive",
+      });
       
       throw err;
     }
@@ -324,14 +365,19 @@ export const useYouTubeAuth = () => {
       
       // Revoke token if possible
       if (authState.accessToken) {
-        // This is an additional step to properly revoke the token on Google's end
-        const revokeUrl = `https://oauth2.googleapis.com/revoke?token=${authState.accessToken}`;
-        await fetch(revokeUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        });
+        try {
+          // This is an additional step to properly revoke the token on Google's end
+          const revokeUrl = `https://oauth2.googleapis.com/revoke?token=${authState.accessToken}`;
+          await fetch(revokeUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          });
+        } catch (e) {
+          console.error('Error revoking token:', e);
+          // Continue with sign out even if token revocation fails
+        }
       }
       
       // Reset state

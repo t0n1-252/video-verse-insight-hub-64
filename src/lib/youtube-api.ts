@@ -1,3 +1,4 @@
+
 // YouTube API service functions
 
 // Define interfaces for video types
@@ -45,6 +46,16 @@ export interface ContentOpportunity {
 // Fetch channel videos using the browser-compatible gapi client
 export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> => {
   try {
+    // Validate inputs
+    if (!accessToken) {
+      throw new Error('No access token provided');
+    }
+    
+    // Check if gapi is loaded
+    if (!window.gapi || !window.gapi.client) {
+      throw new Error('Google API client not loaded');
+    }
+    
     // Set the access token for this request
     window.gapi.client.setApiKey('');
     window.gapi.client.setToken({ access_token: accessToken });
@@ -56,7 +67,8 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     });
     
     if (!channelResponse.result.items || channelResponse.result.items.length === 0) {
-      throw new Error('No channel found for the authenticated user');
+      console.log('No channel found for the authenticated user');
+      return [];
     }
     
     const channelId = channelResponse.result.items[0].id;
@@ -75,7 +87,10 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     }
     
     // Get additional video details (view counts, etc.)
-    const videoIds = videosResponse.result.items.map(item => item.id?.videoId).filter(Boolean);
+    const videoIds = videosResponse.result.items
+      .map(item => item.id?.videoId)
+      .filter(Boolean);
+      
     if (videoIds.length === 0) return [];
     
     const videoDetailsResponse = await window.gapi.client.youtube.videos.list({
@@ -89,20 +104,21 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     
     // Map the response to our Video interface
     return videoDetailsResponse.result.items.map(video => {
-      const snippet = video.snippet;
-      const statistics = video.statistics;
+      const snippet = video.snippet || {};
+      const statistics = video.statistics || {};
+      const thumbnails = snippet.thumbnails || {};
       
       return {
         id: video.id || '',
-        title: snippet?.title || 'Untitled Video',
-        thumbnail: snippet?.thumbnails?.high?.url || snippet?.thumbnails?.default?.url || '',
-        publishDate: snippet?.publishedAt || '',
-        viewCount: statistics?.viewCount || '0',
-        commentCount: parseInt(statistics?.commentCount || '0'),
-        description: snippet?.description || '',
-        likeCount: statistics?.likeCount || '0',
-        channelId: snippet?.channelId || '',
-        channelTitle: snippet?.channelTitle || '',
+        title: snippet.title || 'Untitled Video',
+        thumbnail: thumbnails.high?.url || thumbnails.default?.url || '',
+        publishDate: snippet.publishedAt || '',
+        viewCount: statistics.viewCount || '0',
+        commentCount: parseInt(statistics.commentCount || '0'),
+        description: snippet.description || '',
+        likeCount: statistics.likeCount || '0',
+        channelId: snippet.channelId || '',
+        channelTitle: snippet.channelTitle || '',
       };
     });
   } catch (error) {
