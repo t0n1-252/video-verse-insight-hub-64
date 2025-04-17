@@ -349,7 +349,7 @@ export const generateContentOpportunities = (comments: Comment[]): any[] => {
       
       const descriptionMap: Record<string, string> = {
         'equipment': 'Several viewers have asked about your equipment setup. A detailed breakdown video would be well-received.',
-        'tutorials': 'There's demand for more step-by-step tutorials for beginners in this topic area.',
+        'tutorials': "There is demand for more step-by-step tutorials for beginners in this topic area.",
         'collaborations': 'Your audience is interested in seeing you collaborate with other creators in this space.',
         'budget-friendly': 'Many viewers are looking for more affordable ways to achieve similar results.',
         'advanced-techniques': 'Your advanced viewers want more in-depth content that goes beyond the basics.'
