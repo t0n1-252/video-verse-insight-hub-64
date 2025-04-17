@@ -31,7 +31,7 @@ const initialAuthState: AuthState = {
 
 // Check if credentials are configured
 const areCredentialsConfigured = () => {
-  return API_KEY !== 'YOUR_API_KEY' && CLIENT_ID !== 'YOUR_CLIENT_ID';
+  return API_KEY !== '' && CLIENT_ID !== '';
 };
 
 // Load the Google API client library
