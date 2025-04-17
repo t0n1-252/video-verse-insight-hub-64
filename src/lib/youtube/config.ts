@@ -1,3 +1,4 @@
+
 // YouTube API OAuth 2.0 credentials and configuration
 
 // API Key (keep as empty string since it's not used in OAuth flow)
@@ -8,6 +9,9 @@ export const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.goo
 
 // Automatically use the current domain for redirect
 export const REDIRECT_URI = window.location.origin;
+
+// Log the redirect URI for debugging purposes
+console.log('YouTube OAuth REDIRECT_URI set to:', REDIRECT_URI);
 
 // Scopes needed for the application
 export const SCOPES = [

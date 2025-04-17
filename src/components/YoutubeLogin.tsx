@@ -5,7 +5,7 @@ import { ThreeDotsFade } from 'react-svg-spinners';
 import { Youtube, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface YoutubeLoginProps {
   onLoginSuccess?: () => void;
@@ -15,6 +15,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   const { isSignedIn, isInitializing, user, credentialsConfigured, profileFetchError, signIn, signOut } = useYouTubeAuth();
   const navigate = useNavigate();
   const [signingIn, setSigningIn] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Add this effect to trigger onLoginSuccess when isSignedIn changes to true
   useEffect(() => {
@@ -33,12 +34,18 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     } else {
       try {
         console.log("Attempting to sign in");
+        setAuthError(null);
         setSigningIn(true);
         await signIn();
         console.log("Sign in process initiated successfully");
         // The onLoginSuccess will be triggered by the useEffect above when isSignedIn changes
       } catch (error) {
         console.error("Authentication error:", error);
+        if (error instanceof Error) {
+          setAuthError(error.message);
+        } else {
+          setAuthError("Unknown authentication error occurred");
+        }
         setSigningIn(false);
       }
     }
@@ -76,20 +83,30 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     );
   }
 
-  if (profileFetchError) {
+  // Display both profile fetch errors and authentication errors
+  const errorToDisplay = profileFetchError || authError;
+
+  if (errorToDisplay) {
     return (
       <div className="flex flex-col items-center justify-center p-10 space-y-6">
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{profileFetchError}</AlertDescription>
+          <AlertTitle>Authentication Problem</AlertTitle>
+          <AlertDescription>{errorToDisplay}</AlertDescription>
         </Alert>
         
         <div className="text-center space-y-4">
           <AlertCircle size={40} className="mx-auto text-red-500" />
           <h2 className="text-xl font-bold text-gray-100">Authentication Problem</h2>
           <p className="text-gray-400 max-w-md">
-            We couldn't retrieve your profile information. Please try signing in again.
+            {profileFetchError 
+              ? "We couldn't retrieve your profile information. Please try signing in again."
+              : "We encountered an issue with the YouTube authentication. Please try again."}
           </p>
+          <div className="text-sm text-gray-500 mt-4 p-2 bg-gray-800 rounded-md">
+            <p>Current origin: {window.location.origin}</p>
+            <p>Make sure this exact URL is added to the Google Cloud Console as an authorized redirect URI.</p>
+          </div>
         </div>
         
         <Button
@@ -178,10 +195,15 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
         )}
       </Button>
       
-      <p className="text-xs text-gray-500 max-w-sm text-center">
-        By connecting your account, you allow VideoVerse to access your YouTube data. 
-        We only analyze your content and never post or modify anything.
-      </p>
+      <div className="text-xs text-gray-500 max-w-sm text-center space-y-2">
+        <p>
+          By connecting your account, you allow VideoVerse to access your YouTube data. 
+          We only analyze your content and never post or modify anything.
+        </p>
+        <p className="text-sm font-medium">
+          ⚠️ Make sure to add <span className="bg-gray-800 p-1 rounded">{window.location.origin}</span> to your Google Cloud Console as both an authorized JavaScript origin and redirect URI.
+        </p>
+      </div>
     </div>
   );
 };

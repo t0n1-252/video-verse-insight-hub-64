@@ -11,10 +11,14 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
   }
   
   console.log(`Attempting to fetch user profile with token length: ${accessToken.length}`);
+  console.log(`Token first/last 5 chars: ${accessToken.substring(0, 5)}...${accessToken.substring(accessToken.length - 5)}`);
   
   try {
     console.log('Attempting direct user profile fetch with fetch API');
-    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    const apiUrl = 'https://www.googleapis.com/oauth2/v3/userinfo';
+    console.log(`Fetching from: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
@@ -28,25 +32,30 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
       let errorDetails = '';
       try {
         const errorData = await response.json();
-        errorDetails = errorData?.error_description || errorData?.error || '';
+        errorDetails = JSON.stringify(errorData);
         console.error('Error details:', errorDetails);
       } catch (e) {
         // Unable to parse error response
+        console.error('Could not parse error response:', e);
       }
       
       if (status === 401) {
+        console.error('401 Unauthorized: Token is invalid or expired');
         throw new Error(`401: Invalid or expired access token. ${errorDetails}`);
       } else if (status === 403) {
+        console.error('403 Forbidden: Insufficient permissions or quota exceeded');
         throw new Error(`403: Insufficient permissions or quota exceeded. ${errorDetails}`);
       } else if (status === 500) {
+        console.error('500 Server Error: Google API server error');
         throw new Error('500: Server error occurred, please try again later');
       } else {
+        console.error(`HTTP Error ${status}: Unexpected status code`);
         throw new Error(`HTTP Error ${status}${errorDetails ? ': ' + errorDetails : ''}`);
       }
     }
     
     const data = await response.json();
-    console.log('User profile data retrieved successfully');
+    console.log('User profile data retrieved successfully:', JSON.stringify(data, null, 2));
     
     if (data && data.name) {
       return {
@@ -55,7 +64,7 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
         picture: data.picture || ''
       };
     } else {
-      console.error('Invalid response format from Google API');
+      console.error('Invalid response format from Google API:', data);
       throw new Error('Invalid response format');
     }
   } catch (error) {
@@ -110,14 +119,14 @@ const fetchProfileWithJsonp = (accessToken: string): Promise<{
       document.body.removeChild(script);
       
       if (response && response.name) {
-        console.log('User profile data retrieved successfully via JSONP');
+        console.log('User profile data retrieved successfully via JSONP:', response);
         resolve({
           name: response.name || 'YouTube User',
           email: response.email || '',
           picture: response.picture || ''
         });
       } else if (response && response.error) {
-        console.error('Google API returned an error:', response.error);
+        console.error('Google API returned an error via JSONP:', response.error);
         let errorMessage = `API error: ${response.error.message || 'Unknown error'}`;
         
         // Add more specific error information
@@ -129,13 +138,15 @@ const fetchProfileWithJsonp = (accessToken: string): Promise<{
         
         reject(new Error(errorMessage));
       } else {
-        console.error('Invalid response format from Google API');
+        console.error('Invalid response format from Google API via JSONP');
         reject(new Error('Invalid response format'));
       }
     };
     
     // Create a script URL with the callback
     const url = `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}&callback=${callbackName}`;
+    console.log(`JSONP URL: ${url.substring(0, 60)}...`); // Log partial URL to not expose full token
+    
     script.src = url;
     script.async = true;
     script.onerror = () => {
