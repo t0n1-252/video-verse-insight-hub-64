@@ -249,14 +249,16 @@ export const useYouTubeAuth = () => {
   // Helper function to fetch user profile
   const fetchUserProfile = async (accessToken: string) => {
     try {
-      // Use fetch API with cross-origin credentials
+      console.log('Fetching user profile with token:', accessToken ? 'valid token' : 'no token');
+      
+      // Use fetch API without credentials mode (CORS fix)
       const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
-        },
-        credentials: 'include', // Include cookies for cross-origin requests
+        }
+        // Removed credentials: 'include' to fix CORS issue
       });
       
       if (!response.ok) {
@@ -265,6 +267,7 @@ export const useYouTubeAuth = () => {
       }
       
       const userData = await response.json();
+      console.log('User profile fetched successfully:', userData);
       
       return {
         name: userData.name || 'YouTube User',
