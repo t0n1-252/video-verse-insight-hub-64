@@ -12,6 +12,8 @@ import { fetchChannelVideos, Video } from "@/lib/youtube-api";
 import { ThreeDotsFade } from "react-svg-spinners";
 import AuthRequired from "@/components/AuthRequired";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const DashboardWithYoutube = () => {
   const navigate = useNavigate();
@@ -19,8 +21,9 @@ const DashboardWithYoutube = () => {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);
-  const { accessToken, isSignedIn } = useYouTubeAuth();
+  const { accessToken, isSignedIn, error } = useYouTubeAuth();
   const { toast } = useToast();
+  const currentDomain = window.location.origin;
 
   useEffect(() => {
     if (isSignedIn && accessToken) {
@@ -81,6 +84,21 @@ const DashboardWithYoutube = () => {
             API Setup Guide
           </Button>
         </div>
+
+        {error && error.message && error.message.includes("redirect_uri_mismatch") && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Redirect URI Mismatch Error:</strong> Please add this exact URL to the authorized JavaScript origins and redirect URIs in your Google Cloud Console:
+              <div className="mt-2 p-2 bg-gray-800 rounded-md">
+                <code className="text-sm break-all">{currentDomain}</code>
+              </div>
+              <div className="mt-2">
+                After updating your Google Cloud Console settings, please refresh this page.
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <AuthRequired>
           <Tabs defaultValue="dashboard">

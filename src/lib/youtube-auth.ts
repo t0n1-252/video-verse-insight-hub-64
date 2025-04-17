@@ -5,7 +5,6 @@ import { useToast } from '@/hooks/use-toast';
 // YouTube API OAuth 2.0 credentials
 const API_KEY = ''; // Keep as empty string
 const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.googleusercontent.com';
-const CLIENT_SECRET = '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';
 const REDIRECT_URI = window.location.origin;
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
@@ -47,6 +46,8 @@ const loadGisClient = async () => {
     const script = document.createElement('script');
     script.id = 'google-gis-script';
     script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
     script.onload = () => {
       console.log('Google Identity Services loaded successfully');
       resolve();
@@ -71,6 +72,8 @@ const loadGapiClient = async () => {
     const script = document.createElement('script');
     script.id = 'google-gapi-script';
     script.src = 'https://apis.google.com/js/api.js';
+    script.async = true;
+    script.defer = true;
     script.onload = () => {
       // Initialize the gapi.client
       window.gapi.load('client', async () => {
@@ -130,6 +133,7 @@ export const useYouTubeAuth = () => {
           const client = window.google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES.join(' '),
+            redirect_uri: REDIRECT_URI, // Explicitly set the redirect URI
             callback: (tokenResponse: any) => {
               if (tokenResponse && tokenResponse.access_token) {
                 handleAuthSuccess(tokenResponse.access_token);
@@ -143,7 +147,7 @@ export const useYouTubeAuth = () => {
               // Show toast for error
               toast({
                 title: "Authentication Error",
-                description: "Failed to authenticate with Google. Please try again.",
+                description: "Failed to authenticate with Google. Please check the console for details.",
                 variant: "destructive",
               });
             }
@@ -151,7 +155,8 @@ export const useYouTubeAuth = () => {
           
           setTokenClient(client);
         } else {
-          throw new Error('Google Identity Services not available');
+          console.error('Google Identity Services not available after loading');
+          setError(new Error('Google Identity Services not available'));
         }
         
         // Check if user is already signed in (via localStorage)
@@ -261,6 +266,9 @@ export const useYouTubeAuth = () => {
             description: `Welcome, ${user.name}! Your YouTube account is now connected.`,
             variant: "default",
           });
+          
+          // Clear any previous errors
+          setError(null);
         } catch (error) {
           console.error('Error getting user profile:', error);
           // Still set the token even if we couldn't get user details
@@ -314,11 +322,14 @@ export const useYouTubeAuth = () => {
         throw error;
       }
       
-      // Request an access token with popup settings to reduce COOP issues
+      // Log the current origin for debugging
+      console.log('Current origin:', window.location.origin);
+      
+      // Request an access token with explicit handling for redirect URI issues
       tokenClient.requestAccessToken({
-        prompt: '',
+        prompt: 'consent',
         hint: '',
-        state: REDIRECT_URI,
+        state: REDIRECT_URI, // Pass state parameter for additional security
         enable_serial_consent: true
       });
       
@@ -336,8 +347,12 @@ export const useYouTubeAuth = () => {
       if (error && error.message && typeof error.message === 'string') {
         if (error.message.includes('invalid_client')) {
           errorDescription = "Your YouTube API client ID is invalid. Please check your configuration.";
-        } else if (error.message.includes('redirect_uri_mismatch') || error.message.includes('JavaScript origin')) {
-          errorDescription = "Redirect URI or JavaScript origin mismatch. Make sure they're correctly configured in Google Cloud Console.";
+        } else if (error.message.includes('redirect_uri_mismatch')) {
+          errorTitle = "Redirect URI Mismatch";
+          errorDescription = `Please add "${window.location.origin}" to the authorized redirect URIs in your Google Cloud Console.`;
+        } else if (error.message.includes('JavaScript origin')) {
+          errorTitle = "JavaScript Origin Mismatch";
+          errorDescription = `Please add "${window.location.origin}" to the authorized JavaScript origins in your Google Cloud Console.`;
         } else if (error.message.includes('popup_closed_by_user')) {
           errorTitle = "Authentication Cancelled";
           errorDescription = "You closed the login popup before completing authentication.";
@@ -393,6 +408,9 @@ export const useYouTubeAuth = () => {
         description: "You've been successfully signed out of your YouTube account.",
         variant: "default",
       });
+      
+      // Clear errors
+      setError(null);
     } catch (err) {
       console.error('Error signing out:', err);
       setError(err as Error);
@@ -436,6 +454,7 @@ declare global {
           initTokenClient: (config: {
             client_id: string;
             scope: string;
+            redirect_uri?: string;
             callback: (response: any) => void;
             error_callback?: (error: any) => void;
           }) => any;

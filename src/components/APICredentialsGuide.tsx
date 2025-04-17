@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const APICredentialsGuide = () => {
   const { toast } = useToast();
   const currentOrigin = window.location.origin;
-  const isPreviewDomain = currentOrigin.includes('preview--') && currentOrigin.includes('lovable.app');
+  const isPreviewDomain = currentOrigin.includes('preview--') || currentOrigin.includes('lovable.app');
 
   const copyToClipboard = (text: string, description: string) => {
     navigator.clipboard.writeText(text);
@@ -30,17 +30,15 @@ const APICredentialsGuide = () => {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {isPreviewDomain && (
-          <Alert variant="destructive" className="bg-red-900/30 border-red-700 text-white mb-4">
-            <AlertTriangle className="h-5 w-5 mr-2" />
-            <AlertDescription className="text-white">
-              <strong>Important:</strong> You are currently on a Lovable preview domain: <code className="bg-gray-700 px-1 py-0.5 rounded text-sm">{currentOrigin}</code>
-              <p className="mt-2">
-                You <strong>must</strong> add this exact URL to the authorized JavaScript origins in your Google Cloud Console.
-              </p>
-            </AlertDescription>
-          </Alert>
-        )}
+        <Alert variant="destructive" className="bg-red-900/30 border-red-700 text-white mb-4">
+          <AlertTriangle className="h-5 w-5 mr-2" />
+          <AlertDescription className="text-white">
+            <strong>Important:</strong> You are currently on: <code className="bg-gray-700 px-1 py-0.5 rounded text-sm">{currentOrigin}</code>
+            <p className="mt-2">
+              You <strong>must</strong> add this exact URL to both the authorized JavaScript origins AND authorized redirect URIs in your Google Cloud Console.
+            </p>
+          </AlertDescription>
+        </Alert>
         
         <div className="bg-gray-900 p-4 rounded-md">
           <h3 className="text-lg font-medium text-gray-100 mb-2">Step 1: Create a Google Cloud Project</h3>
@@ -80,7 +78,7 @@ const APICredentialsGuide = () => {
                 <strong>Important:</strong> You must add the <em>exact</em> URL shown above, including the protocol (https://) and without any trailing slash.
               </div>
             </li>
-            <li className="font-semibold text-amber-400">Add authorized redirect URIs:
+            <li className="font-semibold text-amber-400">Add authorized redirect URIs (MANDATORY FOR LOGIN):
               <div className="flex items-center space-x-2 ml-4 my-2 p-2 bg-gray-800 rounded">
                 <code className="text-white break-all">{currentOrigin}</code>
                 <button 
@@ -90,8 +88,8 @@ const APICredentialsGuide = () => {
                   <Copy size={16} />
                 </button>
               </div>
-              <div className="text-sm text-gray-400 ml-4 mt-1">
-                <strong>Note:</strong> For Lovable preview domains, use the exact preview URL shown above. The domain will change with each deployment, so update your credentials accordingly.
+              <div className="text-sm text-red-300 ml-4 mt-1 font-bold">
+                <strong>CRITICAL:</strong> You MUST add the exact URL above as a redirect URI or authentication will fail with a "redirect_uri_mismatch" error.
               </div>
             </li>
             <li>Click &quot;Create&quot; and note down your Client ID and Client Secret</li>
@@ -101,7 +99,7 @@ const APICredentialsGuide = () => {
         <div className="bg-amber-900/30 border border-amber-700/50 p-4 rounded-md">
           <h3 className="text-lg font-medium text-amber-400 mb-2">Common OAuth Errors & Solutions</h3>
           <ul className="list-disc list-inside space-y-2 text-gray-300">
-            <li><span className="font-semibold">redirect_uri_mismatch</span>: Make sure the exact URI of this application is listed in the authorized redirect URIs</li>
+            <li><span className="font-semibold text-red-300">redirect_uri_mismatch</span>: This means the exact URI of this application is NOT listed in the authorized redirect URIs in Google Cloud Console</li>
             <li><span className="font-semibold">JavaScript origin mismatch</span>: Make sure the exact origin (protocol, domain, port) is listed in authorized JavaScript origins</li>
             <li><span className="font-semibold">Invalid client</span>: Make sure your client ID is correct and belongs to this project</li>
             <li><span className="font-semibold">OAuth 2.0 policy non-compliance</span>: This means your app origin isn't correctly registered. Double-check the JavaScript origins match exactly</li>
