@@ -1,5 +1,5 @@
 
-import { API_KEY, areCredentialsConfigured } from './config';
+import { API_KEY, areCredentialsConfigured, REDIRECT_URI } from './config';
 
 // Load the Google Identity Services client library
 export const loadGisClient = async (): Promise<void> => {
@@ -28,6 +28,7 @@ export const loadGisClient = async (): Promise<void> => {
     script.defer = true;
     script.onload = () => {
       console.log('Google Identity Services loaded successfully');
+      console.log('Current redirect URI:', REDIRECT_URI);
       // Add a more significant delay to ensure the script is fully initialized
       setTimeout(() => {
         if (window.google && window.google.accounts) {

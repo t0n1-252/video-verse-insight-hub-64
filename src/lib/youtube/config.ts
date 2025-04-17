@@ -7,8 +7,9 @@ export const API_KEY = '';
 // Client ID from Google Cloud Console
 export const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.googleusercontent.com';
 
-// Automatically use the current domain for redirect
-export const REDIRECT_URI = window.location.origin;
+// Automatically use the current domain for redirect including path
+// This ensures we handle routes like /mock-dashboard correctly
+export const REDIRECT_URI = `${window.location.origin}${window.location.pathname}`;
 
 // Log the redirect URI for debugging purposes
 console.log('YouTube OAuth REDIRECT_URI set to:', REDIRECT_URI);
@@ -45,6 +46,7 @@ export const checkTokenValidity = async (accessToken: string): Promise<{isValid:
   try {
     console.log(`Validating token with length: ${accessToken.length}`);
     console.log(`Token validation check (first 10 chars): ${accessToken.substring(0, 10)}...`);
+    console.log('Current path during token validation:', window.location.pathname);
     
     // Use the v2 tokeninfo endpoint which is more reliable
     const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`, {

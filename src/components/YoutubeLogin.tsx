@@ -1,9 +1,8 @@
-
 import { useYouTubeAuth } from '@/lib/youtube-auth';
 import { Button } from '@/components/ui/button';
 import { ThreeDotsFade } from 'react-svg-spinners';
 import { Youtube, AlertCircle, RefreshCw, Info } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CLIENT_ID, REDIRECT_URI } from '@/lib/youtube/config';
@@ -15,18 +14,20 @@ interface YoutubeLoginProps {
 const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   const { isSignedIn, isInitializing, user, credentialsConfigured, profileFetchError, signIn, signOut } = useYouTubeAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [signingIn, setSigningIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   useEffect(() => {
     console.log("YoutubeLogin: isSignedIn =", isSignedIn, "callback exists =", !!onLoginSuccess);
+    console.log("Current location pathname:", location.pathname);
     
     if (isSignedIn && onLoginSuccess) {
       console.log("Calling login success callback");
       onLoginSuccess();
     }
-  }, [isSignedIn, onLoginSuccess]);
+  }, [isSignedIn, onLoginSuccess, location]);
 
   const handleAuth = async () => {
     if (isSignedIn) {
@@ -35,6 +36,8 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     } else {
       try {
         console.log("Attempting to sign in");
+        console.log("Current path:", location.pathname);
+        console.log("Redirect URI:", REDIRECT_URI);
         setAuthError(null);
         setSigningIn(true);
         await signIn();
@@ -134,7 +137,9 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
                 {showDebugInfo ? 'Hide Debug' : 'Show Debug'}
               </Button>
             </div>
-            <p>Make sure this exact URL is added to the Google Cloud Console as an authorized redirect URI.</p>
+            <p>Make sure to add both URLs to the Google Cloud Console:</p>
+            <p>1. <span className="font-mono">{window.location.origin}</span> as JavaScript origin</p>
+            <p>2. <span className="font-mono">{REDIRECT_URI}</span> as redirect URI</p>
           </div>
           
           {showDebugInfo && (
@@ -255,8 +260,15 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
           We only analyze your content and never post or modify anything.
         </p>
         <p className="text-sm font-medium">
-          ⚠️ Make sure to add <span className="bg-gray-800 p-1 rounded">{window.location.origin}</span> to your Google Cloud Console as both an authorized JavaScript origin and redirect URI.
+          ⚠️ Make sure to add both the following URLs to your Google Cloud Console:
         </p>
+        <div className="text-left bg-gray-800 p-2 rounded text-xs">
+          <p className="font-semibold">JavaScript Origin:</p>
+          <code className="block p-1 bg-black rounded">{window.location.origin}</code>
+          
+          <p className="font-semibold mt-2">Redirect URI:</p>
+          <code className="block p-1 bg-black rounded">{REDIRECT_URI}</code>
+        </div>
       </div>
     </div>
   );
