@@ -46,10 +46,18 @@ const DashboardWithYoutube = () => {
       accessTokenLength: accessToken?.length || 0 
     });
     
-    if (isSignedIn && accessToken && !attemptedLoad) {
-      console.log('User is signed in with access token, loading videos');
-      setAttemptedLoad(true);
-      loadVideos();
+    if (isSignedIn && accessToken) {
+      console.log('User is signed in with access token');
+      
+      if (!attemptedLoad) {
+        console.log('First sign-in detected, loading videos automatically');
+        setAttemptedLoad(true);
+        
+        // Add a small delay before loading videos to ensure everything is initialized
+        setTimeout(() => {
+          loadVideos();
+        }, 2000);
+      }
     }
   }, [isSignedIn, accessToken]);
 
@@ -72,9 +80,34 @@ const DashboardWithYoutube = () => {
       console.log('GAPI client available:', !!window.gapi?.client);
       console.log('YouTube API available:', !!window.gapi?.client?.youtube);
       
-      // Attempt to fetch videos
-      const videoData = await fetchChannelVideos(accessToken);
-      console.log('Video data received:', videoData?.length || 0, 'videos');
+      // Attempt to fetch videos with multiple retries
+      let videoData: Video[] = [];
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          console.log(`Attempt ${attempts + 1}/${maxAttempts} to fetch videos`);
+          videoData = await fetchChannelVideos(accessToken);
+          console.log(`Video data received on attempt ${attempts + 1}:`, videoData?.length || 0, 'videos');
+          
+          if (videoData && videoData.length > 0) {
+            break; // Success! Exit the retry loop
+          }
+          
+          // If we get here, we got an empty array - wait and retry
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+          attempts++;
+        } catch (err) {
+          console.error(`Error in attempt ${attempts + 1}:`, err);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+          attempts++;
+          
+          if (attempts >= maxAttempts) {
+            throw err; // Re-throw on final attempt
+          }
+        }
+      }
       
       if (videoData && videoData.length > 0) {
         setVideos(videoData);
@@ -216,6 +249,16 @@ const DashboardWithYoutube = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+                <div className="flex justify-end mt-4">
+                  <Button 
+                    onClick={handleRetry} 
+                    className="flex items-center gap-2"
+                    disabled={loading}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    {loading ? 'Loading...' : 'Refresh Videos'}
+                  </Button>
+                </div>
               </div>
 
               {loading ? (
@@ -303,3 +346,4 @@ const DashboardWithYoutube = () => {
 };
 
 export default DashboardWithYoutube;
+

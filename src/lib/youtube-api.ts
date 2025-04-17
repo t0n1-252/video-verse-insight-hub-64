@@ -41,7 +41,7 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     
     if (!window.gapi.client) {
       console.error('GAPI client not available');
-      throw new Error('Google API client not initialized');
+      await initializeGapiClient(accessToken);
     }
     
     if (!accessToken) {
@@ -56,27 +56,29 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     window.gapi.client.setToken({ access_token: accessToken });
     console.log('Token set in GAPI client');
     
-    // Force load YouTube API explicitly
+    // Ensure YouTube API is loaded
     return new Promise<Video[]>((resolve, reject) => {
-      // Ensure YouTube API is available
+      // Check if YouTube API is already available
       if (!window.gapi.client.youtube) {
         console.log('YouTube API not initialized, loading explicitly...');
         
-        // Fix for the error - gapi.client.load needs a callback as the third argument
         window.gapi.client.load('youtube', 'v3', () => {
           console.log('YouTube API loaded explicitly, proceeding with fetch');
           // Reset token after initialization
           window.gapi.client.setToken({ access_token: accessToken });
           
-          fetchVideosAfterInit(accessToken)
-            .then(videos => {
-              console.log(`Fetched ${videos.length} videos after explicit API loading`);
-              resolve(videos);
-            })
-            .catch(err => {
-              console.error('Error fetching videos after API init:', err);
-              reject(err);
-            });
+          // Add delay to ensure API is fully initialized
+          setTimeout(() => {
+            fetchVideosAfterInit(accessToken)
+              .then(videos => {
+                console.log(`Fetched ${videos.length} videos after explicit API loading`);
+                resolve(videos);
+              })
+              .catch(err => {
+                console.error('Error fetching videos after API init:', err);
+                reject(err);
+              });
+          }, 1000);
         });
       } else {
         console.log('YouTube API already initialized, proceeding with fetch');
@@ -98,6 +100,33 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
   }
 };
 
+// Helper function to initialize the GAPI client if needed
+const initializeGapiClient = async (accessToken: string): Promise<void> => {
+  return new Promise<void>((resolve, reject) => {
+    if (window.gapi) {
+      window.gapi.load('client', async () => {
+        try {
+          await window.gapi.client.init({
+            apiKey: '',
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
+          });
+          
+          // Set token immediately after initialization
+          window.gapi.client.setToken({ access_token: accessToken });
+          console.log('GAPI client initialized manually');
+          resolve();
+        } catch (error) {
+          console.error('Error initializing GAPI client:', error);
+          reject(error);
+        }
+      });
+    } else {
+      console.error('GAPI not available for initialization');
+      reject(new Error('Google API client not available'));
+    }
+  });
+};
+
 // Helper function to fetch videos after API initialization
 const fetchVideosAfterInit = async (accessToken: string): Promise<Video[]> => {
   try {
@@ -108,7 +137,7 @@ const fetchVideosAfterInit = async (accessToken: string): Promise<Video[]> => {
     console.log('Fetching videos after init with token, YouTube API available:', !!window.gapi.client.youtube);
     
     // Add safety delay to ensure API is fully initialized
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Get the authenticated user's channel ID
     console.log('Requesting user channel');
@@ -203,22 +232,17 @@ const fetchVideosAfterInit = async (accessToken: string): Promise<Video[]> => {
 
 // Function to fetch comments for a specific video
 export const fetchVideoComments = async (accessToken: string, videoId: string): Promise<Comment[]> => {
-  // This would be implemented to fetch real comments from the YouTube API
-  // For now, returning an empty array until we implement real comment fetching
   console.log(`Fetch comments called for video ${videoId}`);
   return [];
 };
 
-// Analyze sentiment of comments (mock implementation)
+// Analyze sentiment of comments (stub implementation)
 export const analyzeSentiment = (comments: Comment[]): { positive: number; neutral: number; negative: number } => {
-  // This would use actual NLP sentiment analysis in a real implementation
-  // Return default values since we don't have real data yet
   return { positive: 0, neutral: 0, negative: 0 };
 };
 
-// Generate content ideas based on comments (mock implementation)
+// Generate content ideas based on comments (stub implementation)
 export const generateContentOpportunities = (comments: Comment[]): any[] => {
-  // This would use ML/NLP to analyze content gaps and opportunities in a real implementation
-  // Return empty array since we don't have real data yet
   return [];
 };
+

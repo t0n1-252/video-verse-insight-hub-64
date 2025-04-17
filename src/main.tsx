@@ -12,6 +12,11 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
+// Global error boundary for all promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled Promise Rejection:', event.reason);
+});
+
 // Error boundary for React 18
 window.addEventListener('error', (event) => {
   console.error('Global error caught:', event.error);
@@ -29,3 +34,5 @@ root.render(
 
 // Log startup for debugging
 console.log('App initialized at:', new Date().toISOString());
+console.log('Running in environment:', import.meta.env.MODE);
+
