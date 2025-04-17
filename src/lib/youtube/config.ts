@@ -7,9 +7,9 @@ export const API_KEY = '';
 // Client ID from Google Cloud Console
 export const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.googleusercontent.com';
 
-// Automatically use the current domain for redirect including path
-// This ensures we handle routes like /mock-dashboard correctly
-export const REDIRECT_URI = `${window.location.origin}${window.location.pathname}`;
+// Use the full origin (domain) as the redirect URI without the path
+// This is simpler and more reliable for OAuth flows
+export const REDIRECT_URI = window.location.origin;
 
 // Log the redirect URI for debugging purposes
 console.log('YouTube OAuth REDIRECT_URI set to:', REDIRECT_URI);

@@ -55,12 +55,10 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   };
 
   const handleClearAndRetry = () => {
-    // Clear all auth related data
     localStorage.removeItem('youtube_access_token');
     localStorage.removeItem('youtube_user');
     sessionStorage.removeItem('youtube_token_timestamp');
     
-    // Clear any Google-specific cookies that might be causing issues
     document.cookie.split(';').forEach(c => {
       if (c.trim().startsWith('g_')) {
         const cookieName = c.split('=')[0];
@@ -68,7 +66,6 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
       }
     });
     
-    // Perform a hard reload to ensure all state is cleared
     window.location.reload();
   };
 
@@ -137,9 +134,8 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
                 {showDebugInfo ? 'Hide Debug' : 'Show Debug'}
               </Button>
             </div>
-            <p>Make sure to add both URLs to the Google Cloud Console:</p>
-            <p>1. <span className="font-mono">{window.location.origin}</span> as JavaScript origin</p>
-            <p>2. <span className="font-mono">{REDIRECT_URI}</span> as redirect URI</p>
+            <p>Make sure to add the following URL to your Google Cloud Console:</p>
+            <p>1. <span className="font-mono">{window.location.origin}</span> as both JavaScript origin AND redirect URI</p>
           </div>
           
           {showDebugInfo && (
@@ -260,7 +256,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
           We only analyze your content and never post or modify anything.
         </p>
         <p className="text-sm font-medium">
-          ⚠️ Make sure to add both the following URLs to your Google Cloud Console:
+          ⚠️ Make sure to add the following URL to your Google Cloud Console:
         </p>
         <div className="text-left bg-gray-800 p-2 rounded text-xs">
           <p className="font-semibold">JavaScript Origin:</p>
