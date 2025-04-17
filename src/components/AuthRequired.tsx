@@ -12,6 +12,8 @@ const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
   const { isSignedIn, isInitializing, credentialsConfigured } = useYouTubeAuth();
   const [contentVisible, setContentVisible] = useState(false);
   
+  console.log("AuthRequired rendering with:", { isSignedIn, isInitializing, credentialsConfigured });
+  
   // Force a re-render when authentication state changes
   useEffect(() => {
     console.log("AuthRequired: Auth state changed, isSignedIn =", isSignedIn);

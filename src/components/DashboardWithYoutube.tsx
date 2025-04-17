@@ -50,32 +50,42 @@ const MOCK_VIDEOS: Video[] = [
 ];
 
 const DashboardWithYoutube = () => {
+  console.log("DashboardWithYoutube component rendering");
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const [videos, setVideos] = useState<Video[]>(MOCK_VIDEOS); // Start with mock videos immediately
-  const [loading, setLoading] = useState(false); // Start with not loading
+  const [videos, setVideos] = useState<Video[]>(MOCK_VIDEOS); // Initialize with mock videos
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { accessToken, isSignedIn, error, user } = useYouTubeAuth();
   const { toast } = useToast();
   const currentDomain = window.location.origin;
   const [attemptedLoad, setAttemptedLoad] = useState(false);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("DashboardWithYoutube mounted");
+    console.log("Initial state:", { 
+      videosCount: videos.length, 
+      isSignedIn, 
+      hasAccessToken: !!accessToken,
+      attemptedLoad
+    });
+  }, []);
+
   // Log auth state changes for debugging
   useEffect(() => {
-    console.log("Auth state changed: isSignedIn =", isSignedIn, "accessToken length =", accessToken?.length || 0);
-  }, [isSignedIn, accessToken]);
-
-  // First check if we have a valid token and try to load videos once when component mounts
-  useEffect(() => {
-    console.log("DashboardWithYoutube mounted, videos count:", videos.length);
+    console.log("Auth state changed:", { 
+      isSignedIn, 
+      accessTokenLength: accessToken?.length || 0 
+    });
     
     if (isSignedIn && accessToken && !attemptedLoad) {
       console.log('User is signed in with access token, loading videos');
       setAttemptedLoad(true);
       loadVideos();
     }
-  }, [accessToken, isSignedIn, attemptedLoad]);
+  }, [isSignedIn, accessToken]);
 
   const loadVideos = async () => {
     if (!accessToken) {
@@ -92,7 +102,7 @@ const DashboardWithYoutube = () => {
       
       // Attempt to fetch real videos
       const videoData = await fetchChannelVideos(accessToken);
-      console.log('Video data received:', videoData.length, 'videos');
+      console.log('Video data received:', videoData?.length || 0, 'videos');
       
       if (videoData && videoData.length > 0) {
         setVideos(videoData);

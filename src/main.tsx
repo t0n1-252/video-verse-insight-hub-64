@@ -4,9 +4,6 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-// We need to remove the duplicate window type declarations
-// since they're already defined in youtube/types.ts
-
 // Get the root element
 const rootElement = document.getElementById('root');
 
@@ -25,7 +22,9 @@ const root = createRoot(rootElement);
 
 // Render your app
 root.render(
-  <App />
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
 );
 
 // Log startup for debugging
