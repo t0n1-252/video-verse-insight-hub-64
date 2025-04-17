@@ -36,41 +36,57 @@ export const areCredentialsConfigured = () => {
   return CLIENT_ID.trim() !== '';
 };
 
-// Debug function to check token validity - Fixed to properly validate tokens
+// Debug function to check token validity - Improved to handle different error scenarios
 export const checkTokenValidity = async (accessToken: string): Promise<{isValid: boolean, details?: string}> => {
   if (!accessToken) {
     return { isValid: false, details: 'No token provided' };
   }
   
   try {
-    // Create a URL with the token as a query parameter
-    const url = new URL('https://www.googleapis.com/oauth2/v1/tokeninfo');
-    url.searchParams.append('access_token', accessToken);
+    console.log(`Validating token with length: ${accessToken.length}`);
+    console.log(`Token validation check (first 10 chars): ${accessToken.substring(0, 10)}...`);
     
-    console.log(`Validating token (first/last 5 chars): ${accessToken.substring(0, 5)}...${accessToken.substring(accessToken.length - 5)}`);
-    
-    // Make the validation request
-    const validationResponse = await fetch(url.toString(), {
+    // Get token info directly from Google's tokeninfo endpoint
+    const response = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(accessToken)}`, {
       method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
       // Disable cache to ensure fresh validation
       cache: 'no-store'
     });
     
-    // Parse the response
-    if (validationResponse.ok) {
-      const data = await validationResponse.json();
-      console.log('Token validation successful, details:', data);
-      return { 
-        isValid: true, 
-        details: `Token valid for ${data.scope}, expires in ${data.expires_in}s` 
-      };
+    const data = await response.json();
+    
+    if (response.ok) {
+      console.log('Token validation successful:', data);
+      // Additional check to ensure the token belongs to our app
+      if (data.aud && data.aud === CLIENT_ID) {
+        return { 
+          isValid: true, 
+          details: `Token valid, expires in ${data.expires_in}s` 
+        };
+      } else {
+        console.warn('Token belongs to different client ID:', data.aud);
+        return { 
+          isValid: false, 
+          details: 'Token belongs to a different application' 
+        };
+      }
     } else {
-      const errorData = await validationResponse.json();
-      console.error('Token validation failed:', errorData);
-      return { 
-        isValid: false, 
-        details: `Token invalid: ${errorData.error_description || errorData.error || 'Unknown error'}` 
-      };
+      console.error('Token validation failed:', data);
+      
+      // Handle specific error cases
+      if (data.error === 'invalid_token') {
+        return { isValid: false, details: 'Invalid token format or signature' };
+      } else if (data.error === 'expired_token') {
+        return { isValid: false, details: 'Token has expired' };
+      } else {
+        return { 
+          isValid: false, 
+          details: `Token invalid: ${data.error_description || data.error || 'Unknown error'}` 
+        };
+      }
     }
   } catch (error) {
     console.error('Error during token validation:', error);

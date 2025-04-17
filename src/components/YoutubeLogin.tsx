@@ -50,6 +50,12 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     }
   };
 
+  const handleClearAndRetry = () => {
+    localStorage.removeItem('youtube_access_token');
+    localStorage.removeItem('youtube_user');
+    window.location.reload();
+  };
+
   if (isInitializing) {
     return (
       <div className="flex flex-col items-center p-6 space-y-4">
@@ -126,14 +132,13 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
                 <li><span className="font-semibold">Redirect URI:</span> {REDIRECT_URI}</li>
                 <li><span className="font-semibold">Full URL:</span> {window.location.href}</li>
                 <li><span className="font-semibold">User Agent:</span> {navigator.userAgent}</li>
-                <li><span className="font-semibold">Error Timing:</span> After success message during profile/data loading</li>
+                <li><span className="font-semibold">OAuth Error:</span> {errorToDisplay}</li>
               </ul>
-              <p className="mt-2 italic">If this issue persists, please clear your browser cache and cookies, then try again.</p>
             </div>
           )}
         </div>
         
-        <div className="flex space-x-4">
+        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
           <Button
             className="bg-blue-600 hover:bg-blue-700 text-white"
             onClick={handleAuth}
@@ -154,10 +159,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
           
           <Button
             variant="outline"
-            onClick={() => {
-              localStorage.clear();
-              window.location.reload();
-            }}
+            onClick={handleClearAndRetry}
           >
             Clear Cache & Reload
           </Button>

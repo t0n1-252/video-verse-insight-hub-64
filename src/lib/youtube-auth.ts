@@ -29,7 +29,7 @@ export const useYouTubeAuth = () => {
         setIsInitializing(true);
         
         if (!credentialsConfigured) {
-          console.warn('YouTube API credentials not configured. Please set up your API keys in src/lib/youtube-auth.ts');
+          console.warn('YouTube API credentials not configured');
           setIsInitializing(false);
           return;
         }
@@ -44,7 +44,7 @@ export const useYouTubeAuth = () => {
             redirect_uri: REDIRECT_URI,
             callback: (tokenResponse: any) => {
               if (tokenResponse && tokenResponse.access_token) {
-                console.log("Token received from Google OAuth", tokenResponse.access_token.substring(0, 5) + "...");
+                console.log("Token received from Google OAuth", tokenResponse.access_token.substring(0, 10) + "...");
                 handleAuthSuccess(tokenResponse.access_token);
               }
             },
@@ -147,7 +147,7 @@ export const useYouTubeAuth = () => {
   }, [credentialsConfigured, toast]);
 
   const handleAuthSuccess = async (accessToken: string) => {
-    console.log('Authentication successful, token obtained');
+    console.log('Authentication successful, token received');
     
     try {
       console.log('Validating the new token...');
@@ -184,19 +184,28 @@ export const useYouTubeAuth = () => {
       let retries = 3;
       let lastError = null;
       
-      while (retries > 0 && !user) {
+      for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-          console.log(`Attempting to fetch user profile, attempt ${4-retries}/3`);
+          console.log(`Attempting to fetch user profile, attempt ${attempt}/${retries}`);
+          
+          if (attempt > 1) {
+            const delay = attempt * 2000;
+            console.log(`Waiting ${delay}ms before retry ${attempt}`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+          
           user = await fetchUserProfile(accessToken);
-          console.log("User profile retrieved:", user);
+          console.log("User profile retrieved on attempt", attempt, user);
           break;
         } catch (err) {
           lastError = err;
-          console.warn(`User profile fetch attempt failed, ${retries - 1} retries left`, err);
-          retries--;
+          console.warn(`User profile fetch attempt ${attempt} failed:`, err);
           
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
+          if (err instanceof Error && 
+              (err.message.includes('Token rejected') || 
+               err.message.includes('Invalid or expired access token'))) {
+            console.error('Token was explicitly rejected by Google API, not retrying');
+            break;
           }
         }
       }
@@ -223,30 +232,25 @@ export const useYouTubeAuth = () => {
         console.error("Failed to fetch user profile after multiple attempts", lastError);
         let errorMessage = "Failed to fetch user profile.";
         
-        if (lastError && lastError.message) {
-          if (lastError.message.includes("401")) {
-            errorMessage = "Invalid access token. Please sign in again.";
-          } else if (lastError.message.includes("500")) {
-            errorMessage = "Unable to fetch your profile due to a server error. Please try again later.";
-          } else if (lastError.message.includes("Failed to fetch")) {
-            errorMessage = "Network error: Couldn't connect to Google servers. Please check your internet connection.";
-          }
+        if (lastError instanceof Error) {
+          errorMessage = lastError.message;
         }
         
-        console.error(errorMessage);
+        console.error('Profile fetch error:', errorMessage);
         setProfileFetchError(errorMessage);
         
-        setAuthState(initialAuthState);
-        localStorage.removeItem('youtube_access_token');
-        localStorage.removeItem('youtube_user');
+        setAuthState(prevState => ({
+          ...prevState,
+          isSignedIn: true,
+          accessToken,
+          user: null 
+        }));
         
         toast({
-          title: "Authentication Failed",
+          title: "Profile Information Unavailable",
           description: errorMessage,
           variant: "destructive",
         });
-        
-        return;
       }
       
       setError(null);
