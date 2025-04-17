@@ -1,4 +1,3 @@
-
 // YouTube API service functions
 
 // Define interfaces for video types
@@ -64,36 +63,39 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     window.gapi.client.setApiKey('');
     window.gapi.client.setToken({ access_token: accessToken });
     
-    // Make sure YouTube API is properly initialized
-    if (!window.gapi.client.youtube) {
-      console.log('YouTube API not initialized yet, loading now...');
-      
-      return new Promise<Video[]>((resolve, reject) => {
+    // Force load YouTube API explicitly - this is a critical fix
+    return new Promise<Video[]>((resolve, reject) => {
+      if (!window.gapi.client.youtube) {
+        console.log('YouTube API not initialized, loading explicitly...');
+        
         try {
-          // Initialize YouTube API client explicitly
+          // Load YouTube API explicitly with a callback
           window.gapi.client.load('youtube', 'v3', async () => {
-            console.log('YouTube API loaded explicitly via client.load');
-            
-            // Now fetch the videos after initialization
+            console.log('YouTube API loaded explicitly, proceeding with fetch');
             try {
+              // Reset token after initialization
+              window.gapi.client.setToken({ access_token: accessToken });
               const videos = await fetchVideosAfterInit(accessToken);
               resolve(videos);
             } catch (err) {
-              console.error('Error fetching videos after explicit init:', err);
+              console.error('Error fetching videos after initialization:', err);
               reject(err);
             }
           });
-        } catch (err) {
-          console.error('Error loading YouTube API explicitly:', err);
-          reject(err);
+        } catch (loadErr) {
+          console.error('Error loading YouTube API:', loadErr);
+          reject(loadErr);
         }
-      });
-    }
-    
-    // If YouTube API is already initialized, fetch videos directly
-    return fetchVideosAfterInit(accessToken);
+      } else {
+        console.log('YouTube API already initialized, proceeding with fetch');
+        // API already initialized, fetch directly
+        fetchVideosAfterInit(accessToken)
+          .then(resolve)
+          .catch(reject);
+      }
+    });
   } catch (error) {
-    console.error('Error fetching channel videos:', error);
+    console.error('Error in fetchChannelVideos:', error);
     throw error;
   }
 };
@@ -104,8 +106,11 @@ const fetchVideosAfterInit = async (accessToken: string): Promise<Video[]> => {
     // Make sure token is set before making requests
     window.gapi.client.setToken({ access_token: accessToken });
     
+    // Debug output to trace execution
+    console.log('Fetching videos after init with token, YouTube API available:', !!window.gapi.client.youtube);
+    
     // Get the authenticated user's channel ID
-    console.log('Fetching user channel with token');
+    console.log('Requesting user channel');
     const channelResponse = await window.gapi.client.youtube.channels.list({
       part: 'id,snippet',
       mine: true

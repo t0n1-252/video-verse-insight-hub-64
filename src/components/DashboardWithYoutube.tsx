@@ -26,21 +26,24 @@ const DashboardWithYoutube = () => {
   const { toast } = useToast();
   const currentDomain = window.location.origin;
 
-  // Ensure gapi client is loaded before using it
+  // Load videos when user is signed in
   useEffect(() => {
-    // Only load videos after we confirm the user is signed in and has an access token
     if (isSignedIn && accessToken) {
       console.log('User is signed in with access token, loading videos');
-      // Add a small delay to ensure all APIs are fully initialized
+      
+      // Add a more significant delay to ensure all APIs are fully initialized
+      // This is critical for proper initialization
       setTimeout(() => {
+        console.log('Executing loadVideos after delay');
         loadVideos();
-      }, 1000);
+      }, 2000); // Increased delay for API initialization
     }
   }, [accessToken, isSignedIn]);
 
   const loadVideos = async () => {
     if (!accessToken) {
       console.error('No access token available for loadVideos');
+      setLoadError('Authentication token is missing. Please try signing in again.');
       return;
     }
     
@@ -49,6 +52,7 @@ const DashboardWithYoutube = () => {
       setLoadError(null);
       
       console.log('Starting video fetch with token length:', accessToken.length);
+      
       const videoData = await fetchChannelVideos(accessToken);
       console.log('Video data received:', videoData.length, 'videos');
       
