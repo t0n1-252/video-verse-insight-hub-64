@@ -1,3 +1,4 @@
+
 // Function to fetch user profile data
 export const fetchUserProfile = async (accessToken: string): Promise<{
   name: string;
@@ -50,8 +51,15 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
   } catch (error) {
     console.error('Profile fetch failed:', error);
     
+    // Check if token is expired or invalid before trying JSONP
+    if (error instanceof Error && error.message.includes('401:')) {
+      console.error('Token is invalid or expired, no need to try JSONP');
+      throw error; // Re-throw the token error to trigger re-authentication
+    }
+    
     // If the error is already formatted (from our checks above), just rethrow it
-    if (error instanceof Error && (error.message.startsWith('401:') || 
+    if (error instanceof Error && (
+        error.message.startsWith('401:') || 
         error.message.startsWith('403:') || 
         error.message.startsWith('500:'))) {
       throw error;
@@ -59,7 +67,18 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
     
     // Otherwise, we'll try a fallback approach with JSONP
     console.log('Trying JSONP fallback approach');
-    return await fetchProfileWithJsonp(accessToken);
+    try {
+      return await fetchProfileWithJsonp(accessToken);
+    } catch (jsonpError) {
+      console.error('JSONP fallback also failed:', jsonpError);
+      
+      // If JSONP also fails with a 401 error, indicate the token is invalid
+      if (jsonpError instanceof Error && jsonpError.message.includes('401')) {
+        throw new Error('401: Invalid or expired access token');
+      }
+      
+      throw jsonpError; // Re-throw the JSONP error
+    }
   }
 };
 
