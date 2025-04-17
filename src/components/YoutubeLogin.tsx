@@ -2,16 +2,17 @@
 import { useYouTubeAuth } from '@/lib/youtube-auth';
 import { Button } from '@/components/ui/button';
 import { ThreeDotsFade } from 'react-svg-spinners';
-import { Youtube, AlertCircle } from 'lucide-react';
+import { Youtube, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface YoutubeLoginProps {
   onLoginSuccess?: () => void;
 }
 
 const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
-  const { isSignedIn, isInitializing, user, credentialsConfigured, signIn, signOut } = useYouTubeAuth();
+  const { isSignedIn, isInitializing, user, credentialsConfigured, profileFetchError, signIn, signOut } = useYouTubeAuth();
   const navigate = useNavigate();
   const [signingIn, setSigningIn] = useState(false);
 
@@ -70,6 +71,43 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
         >
           <AlertCircle className="mr-2 h-5 w-5" />
           Go to Setup Instructions
+        </Button>
+      </div>
+    );
+  }
+
+  if (profileFetchError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-10 space-y-6">
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{profileFetchError}</AlertDescription>
+        </Alert>
+        
+        <div className="text-center space-y-4">
+          <AlertCircle size={40} className="mx-auto text-red-500" />
+          <h2 className="text-xl font-bold text-gray-100">Authentication Problem</h2>
+          <p className="text-gray-400 max-w-md">
+            We couldn't retrieve your profile information. Please try signing in again.
+          </p>
+        </div>
+        
+        <Button
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={handleAuth}
+          disabled={signingIn}
+        >
+          {signingIn ? (
+            <>
+              <ThreeDotsFade className="mr-2" color="white" height={20} />
+              Connecting...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-5 w-5" />
+              Try Again
+            </>
+          )}
         </Button>
       </div>
     );

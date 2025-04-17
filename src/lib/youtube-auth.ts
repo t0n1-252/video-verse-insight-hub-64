@@ -19,6 +19,7 @@ export const useYouTubeAuth = () => {
   const [error, setError] = useState<Error | null>(null);
   const [credentialsConfigured] = useState(areCredentialsConfigured());
   const [tokenClient, setTokenClient] = useState<any>(null);
+  const [profileFetchError, setProfileFetchError] = useState<string | null>(null);
   
   // Fix for React Hook order error: bring toast initialization to top level
   const { toast } = useToast();
@@ -228,32 +229,40 @@ export const useYouTubeAuth = () => {
           description: `Welcome, ${user.name}! Your YouTube account is now connected.`,
           variant: "default",
         });
+        
+        // Clear any profile fetch error
+        setProfileFetchError(null);
       } else {
-        // Still logged in but couldn't get profile
-        console.error('Failed to fetch user profile after multiple attempts', lastError);
-        
-        // Set basic user info without profile details
-        const fallbackUser = {
-          name: 'YouTube User',
-          email: '',
-          picture: ''
-        };
-        
-        setAuthState(prevState => ({
-          ...prevState,
-          isSignedIn: true,
-          accessToken,
-          user: fallbackUser
-        }));
-        
-        // Store fallback user in localStorage for persistence
-        localStorage.setItem('youtube_user', JSON.stringify(fallbackUser));
-        
+        // Handle the case where we couldn't get the profile
+        console.error("Failed to fetch user profile after multiple attempts", lastError);
+        let errorMessage = "Failed to fetch user profile."; // Default error message
+
+        if (lastError && lastError.message) {
+          if (lastError.message.includes("401")) {
+            errorMessage = "Invalid access token. Please sign in again.";
+          } else if (lastError.message.includes("500")) {
+            errorMessage = "Unable to fetch your profile due to a server error. Please try again later.";
+          } else if (lastError.message.includes("Failed to fetch")) {
+            errorMessage = "Network error: Couldn't connect to Google servers. Please check your internet connection.";
+          }
+        }
+
+        console.error(errorMessage);
+        setProfileFetchError(errorMessage);
+
+        // Clear the auth state as the token may be invalid
+        setAuthState(initialAuthState);
+        localStorage.removeItem('youtube_access_token');
+        localStorage.removeItem('youtube_user');
+
         toast({
-          title: "Connected with limited info",
-          description: "Your YouTube account is connected, but we couldn't fetch your profile details. You can still use the app.",
-          variant: "default",
+          title: "Authentication Failed",
+          description: errorMessage,
+          variant: "destructive",
         });
+        
+        // Don't continue with the fallback user approach - instead, force re-authentication
+        return;
       }
       
       // Clear any previous errors
@@ -261,26 +270,15 @@ export const useYouTubeAuth = () => {
     } catch (error) {
       console.error('Error in handleAuthSuccess:', error);
       
-      // We're still authenticated, just couldn't get user details
-      const fallbackUser = {
-        name: 'YouTube User',
-        email: '',
-        picture: ''
-      };
-      
-      setAuthState({
-        isSignedIn: true,
-        accessToken,
-        user: fallbackUser
-      });
-      
-      // Store fallback user in localStorage
-      localStorage.setItem('youtube_user', JSON.stringify(fallbackUser));
+      // Clear auth state on error
+      setAuthState(initialAuthState);
+      localStorage.removeItem('youtube_access_token');
+      localStorage.removeItem('youtube_user');
       
       toast({
-        title: "Partially connected",
-        description: "Your YouTube account is connected, but we couldn't fetch your profile details. You can still use the app.",
-        variant: "default",
+        title: "Authentication Failed",
+        description: "An unexpected error occurred. Please try signing in again.",
+        variant: "destructive",
       });
     }
   };
@@ -311,6 +309,7 @@ export const useYouTubeAuth = () => {
       // Clear previous auth state to prevent conflicts
       localStorage.removeItem('youtube_access_token');
       localStorage.removeItem('youtube_user');
+      setProfileFetchError(null);
       
       // Log the current origin for debugging
       console.log('Current origin:', window.location.origin);
@@ -387,6 +386,7 @@ export const useYouTubeAuth = () => {
       
       // Reset state
       setAuthState(initialAuthState);
+      setProfileFetchError(null);
       
       // Clear token from gapi if available
       if (window.gapi && window.gapi.client) {
@@ -413,6 +413,7 @@ export const useYouTubeAuth = () => {
     isInitializing,
     error,
     credentialsConfigured,
+    profileFetchError,
     signIn,
     signOut
   };
