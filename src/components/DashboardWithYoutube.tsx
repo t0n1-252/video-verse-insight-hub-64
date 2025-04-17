@@ -15,46 +15,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
-// Mock videos for fallback - ensure they're always available
-const MOCK_VIDEOS: Video[] = [
-  {
-    id: "mock1",
-    title: "Getting Started with React",
-    description: "Learn the basics of React development",
-    thumbnail: "https://i.imgur.com/JvYeG1Z.jpg",
-    publishDate: new Date().toISOString(),
-    viewCount: 1254,
-    likeCount: 87,
-    commentCount: 12
-  },
-  {
-    id: "mock2",
-    title: "Advanced TypeScript Patterns",
-    description: "Master TypeScript with these advanced patterns",
-    thumbnail: "https://i.imgur.com/Nbgends.jpg",
-    publishDate: new Date().toISOString(),
-    viewCount: 843,
-    likeCount: 64,
-    commentCount: 9
-  },
-  {
-    id: "mock3",
-    title: "Building a Full-Stack App",
-    description: "Complete guide to building full stack applications",  
-    thumbnail: "https://i.imgur.com/6Hlfxkg.jpg",
-    publishDate: new Date().toISOString(),
-    viewCount: 2152,
-    likeCount: 143,
-    commentCount: 27
-  }
-];
-
 const DashboardWithYoutube = () => {
   console.log("DashboardWithYoutube component rendering");
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const [videos, setVideos] = useState<Video[]>(MOCK_VIDEOS); // Initialize with mock videos
+  const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { accessToken, isSignedIn, error, user } = useYouTubeAuth();
@@ -99,8 +65,14 @@ const DashboardWithYoutube = () => {
       setLoadError(null);
       
       console.log('Starting video fetch with token length:', accessToken.length);
+      console.log('Token prefix for debugging:', accessToken.substring(0, 10) + '...');
       
-      // Attempt to fetch real videos
+      // More detailed logging around GAPI availability
+      console.log('GAPI available:', !!window.gapi);
+      console.log('GAPI client available:', !!window.gapi?.client);
+      console.log('YouTube API available:', !!window.gapi?.client?.youtube);
+      
+      // Attempt to fetch videos
       const videoData = await fetchChannelVideos(accessToken);
       console.log('Video data received:', videoData?.length || 0, 'videos');
       
@@ -113,13 +85,13 @@ const DashboardWithYoutube = () => {
           variant: "default"
         });
       } else {
-        // If no videos found, ensure mock data is used
-        console.log('No videos found from API, using mock data');
-        setVideos(MOCK_VIDEOS);
+        // If no videos found, set empty array
+        console.log('No videos found from API');
+        setVideos([]);
         
         toast({
-          title: "Using demo videos",
-          description: "No videos found in your channel. Using demo videos for display.",
+          title: "No videos found",
+          description: "No videos were found in your YouTube channel.",
           variant: "default"
         });
       }
@@ -128,9 +100,8 @@ const DashboardWithYoutube = () => {
       const errorMessage = error.message || "Unknown error occurred";
       setLoadError(`Failed to load videos: ${errorMessage}`);
       
-      // Ensure mock videos are set on error
-      console.log('Setting mock videos due to error');
-      setVideos(MOCK_VIDEOS);
+      // Set empty videos array on error
+      setVideos([]);
       
       toast({
         title: "Error loading videos",
