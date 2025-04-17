@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { ThreeDotsFade } from "react-svg-spinners";
 import AuthRequired from "@/components/AuthRequired";
 
 const DashboardWithYoutube = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
@@ -54,7 +55,7 @@ const DashboardWithYoutube = () => {
             <span className="text-purple-500">Video</span>
             <span className="text-blue-400">Verse</span> Insight Hub
           </h1>
-          <Button variant="outline" onClick={() => window.location.href = '/setup'}>
+          <Button variant="outline" onClick={() => navigate('/setup')}>
             API Setup Guide
           </Button>
         </div>
