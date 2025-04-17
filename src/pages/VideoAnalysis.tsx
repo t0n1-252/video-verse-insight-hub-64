@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MessageCircle, ThumbsUp, ThumbsDown, AlertCircle, HelpCircle, Lightbulb } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import SentimentChart from "@/components/SentimentChart";
-import CommentList from "@/components/CommentList";
+import CommentList, { Comment as UiComment } from "@/components/CommentList";
 import ContentOpportunities from "@/components/ContentOpportunities";
 import { useYouTubeAuth } from "@/lib/youtube-auth";
-import { Video, Comment, fetchVideoComments, analyzeSentiment, generateContentOpportunities } from "@/lib/youtube-api";
+import { Video, Comment as ApiComment, fetchVideoComments, analyzeSentiment, generateContentOpportunities } from "@/lib/youtube-api";
+import { mapApiCommentsToUiComments } from "@/lib/youtube/comment-mapper";
 import { ThreeDotsFade } from "react-svg-spinners";
 
 interface VideoAnalysisProps {
@@ -19,7 +20,8 @@ interface VideoAnalysisProps {
 
 const VideoAnalysis = ({ video }: VideoAnalysisProps) => {
   const [activeTab, setActiveTab] = useState("overview");
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [apiComments, setApiComments] = useState<ApiComment[]>([]);
+  const [comments, setComments] = useState<UiComment[]>([]);
   const [loading, setLoading] = useState(false);
   const [sentiment, setSentiment] = useState({ positive: 65, neutral: 25, negative: 10 });
   const [opportunities, setOpportunities] = useState<any[]>([]);
@@ -37,7 +39,11 @@ const VideoAnalysis = ({ video }: VideoAnalysisProps) => {
     try {
       setLoading(true);
       const commentsData = await fetchVideoComments(accessToken, video.id);
-      setComments(commentsData);
+      setApiComments(commentsData);
+      
+      // Convert API comments to UI comments format
+      const uiComments = mapApiCommentsToUiComments(commentsData);
+      setComments(uiComments);
       
       // Calculate sentiment based on actual comments
       const sentimentData = analyzeSentiment(commentsData);
