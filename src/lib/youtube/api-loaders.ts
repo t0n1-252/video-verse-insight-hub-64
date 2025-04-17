@@ -37,9 +37,9 @@ export const loadGisClient = async (): Promise<void> => {
             } else {
               reject(new Error('Google Identity Services not available after loading'));
             }
-          }, 500); // Longer delay for more reliability
+          }, 1000); // Longer delay for more reliability
         }
-      }, 200); // Increased delay for initialization
+      }, 500); // Increased delay for initialization
     };
     script.onerror = (error) => {
       console.error('Error loading Google Identity Services:', error);
@@ -73,6 +73,12 @@ export const loadGapiClient = async (): Promise<void> => {
     script.onload = () => {
       // Initialize the gapi.client with a delay to ensure proper loading
       setTimeout(() => {
+        if (!window.gapi) {
+          console.error('GAPI not available after script load');
+          reject(new Error('Google API client not available after loading'));
+          return;
+        }
+        
         window.gapi.load('client', async () => {
           try {
             if (!areCredentialsConfigured()) {
@@ -90,7 +96,7 @@ export const loadGapiClient = async (): Promise<void> => {
             reject(error);
           }
         });
-      }, 200); // Add delay for more reliable initialization
+      }, 500); // Add longer delay for more reliable initialization
     };
     script.onerror = (error) => {
       console.error('Error loading Google API client:', error);

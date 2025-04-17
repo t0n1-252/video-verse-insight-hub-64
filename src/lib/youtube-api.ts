@@ -46,6 +46,7 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     
     // Force load YouTube API explicitly - this is a critical fix
     return new Promise<Video[]>((resolve, reject) => {
+      // Check if YouTube API is available
       if (!window.gapi.client.youtube) {
         console.log('YouTube API not initialized, loading explicitly...');
         
@@ -89,6 +90,9 @@ const fetchVideosAfterInit = async (accessToken: string): Promise<Video[]> => {
     
     // Debug output to trace execution
     console.log('Fetching videos after init with token, YouTube API available:', !!window.gapi.client.youtube);
+    
+    // Add safety delay to ensure API is fully initialized
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Get the authenticated user's channel ID
     console.log('Requesting user channel');

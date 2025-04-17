@@ -15,6 +15,40 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
+// Mock videos for fallback
+const MOCK_VIDEOS: Video[] = [
+  {
+    id: "mock1",
+    title: "Getting Started with React",
+    description: "Learn the basics of React development",
+    thumbnail: "https://i.imgur.com/JvYeG1Z.jpg",
+    publishDate: new Date().toISOString(),
+    viewCount: 1254,
+    likeCount: 87,
+    commentCount: 12
+  },
+  {
+    id: "mock2",
+    title: "Advanced TypeScript Patterns",
+    description: "Master TypeScript with these advanced patterns",
+    thumbnail: "https://i.imgur.com/Nbgends.jpg",
+    publishDate: new Date().toISOString(),
+    viewCount: 843,
+    likeCount: 64,
+    commentCount: 9
+  },
+  {
+    id: "mock3",
+    title: "Building a Full-Stack App",
+    description: "Complete guide to building full stack applications",  
+    thumbnail: "https://i.imgur.com/6Hlfxkg.jpg",
+    publishDate: new Date().toISOString(),
+    viewCount: 2152,
+    likeCount: 143,
+    commentCount: 27
+  }
+];
+
 const DashboardWithYoutube = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,13 +64,7 @@ const DashboardWithYoutube = () => {
   useEffect(() => {
     if (isSignedIn && accessToken) {
       console.log('User is signed in with access token, loading videos');
-      
-      // Add a more significant delay to ensure all APIs are fully initialized
-      // This is critical for proper initialization
-      setTimeout(() => {
-        console.log('Executing loadVideos after delay');
-        loadVideos();
-      }, 2000); // Increased delay for API initialization
+      loadVideos();
     }
   }, [accessToken, isSignedIn]);
 
@@ -53,65 +81,36 @@ const DashboardWithYoutube = () => {
       
       console.log('Starting video fetch with token length:', accessToken.length);
       
-      // Temporarily falling back to mock data for testing if real API fails
       try {
         // Try to fetch real videos first
         const videoData = await fetchChannelVideos(accessToken);
         console.log('Video data received:', videoData.length, 'videos');
         
-        setVideos(videoData);
-        
-        if (videoData.length === 0) {
-          toast({
-            title: "No videos found",
-            description: "We couldn't find any videos in your YouTube channel. Make sure your account has uploaded videos.",
-            variant: "default"
-          });
-        } else {
+        if (videoData && videoData.length > 0) {
+          setVideos(videoData);
+          
           toast({
             title: "Videos loaded successfully",
             description: `Found ${videoData.length} videos from your channel.`,
+            variant: "default"
+          });
+        } else {
+          // If no videos found, use mock data
+          console.log('No videos found from API, using mock data');
+          setVideos(MOCK_VIDEOS);
+          
+          toast({
+            title: "Using demo videos",
+            description: "No videos found in your channel. Using demo videos for display.",
             variant: "default"
           });
         }
       } catch (apiError: any) {
         console.error("Error fetching from YouTube API:", apiError);
         
-        // Fall back to mock data for testing purposes
-        const mockVideos: Video[] = [
-          {
-            id: "mock1",
-            title: "Getting Started with React",
-            description: "Learn the basics of React development",
-            thumbnail: "https://i.imgur.com/JvYeG1Z.jpg",
-            publishDate: new Date().toISOString(),
-            viewCount: 1254,
-            likeCount: 87,
-            commentCount: 12
-          },
-          {
-            id: "mock2",
-            title: "Advanced TypeScript Patterns",
-            description: "Master TypeScript with these advanced patterns",
-            thumbnail: "https://i.imgur.com/Nbgends.jpg",
-            publishDate: new Date().toISOString(),
-            viewCount: 843,
-            likeCount: 64,
-            commentCount: 9
-          },
-          {
-            id: "mock3",
-            title: "Building a Full-Stack App",
-            description: "Complete guide to building full stack applications",  
-            thumbnail: "https://i.imgur.com/6Hlfxkg.jpg",
-            publishDate: new Date().toISOString(),
-            viewCount: 2152,
-            likeCount: 143,
-            commentCount: 27
-          }
-        ];
-        
-        setVideos(mockVideos);
+        // Always fall back to mock data on any error
+        console.log('Falling back to mock data due to API error');
+        setVideos(MOCK_VIDEOS);
         
         toast({
           title: "Using demo videos",
@@ -123,6 +122,10 @@ const DashboardWithYoutube = () => {
       console.error("Error loading videos:", error);
       const errorMessage = error.message || "Unknown error occurred";
       setLoadError(`Failed to load videos: ${errorMessage}`);
+      
+      // Even if outer try-catch fails, still use mock data
+      console.log('Setting mock videos as final fallback');
+      setVideos(MOCK_VIDEOS);
       
       toast({
         title: "Error loading videos",
