@@ -1,8 +1,8 @@
 
-import Dashboard from "./Dashboard";
+import DashboardWithYoutube from '@/components/DashboardWithYoutube';
 
 const Index = () => {
-  return <Dashboard />;
+  return <DashboardWithYoutube />;
 };
 
 export default Index;
