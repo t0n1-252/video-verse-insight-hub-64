@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,9 +30,17 @@ const DashboardWithYoutube = () => {
   useEffect(() => {
     if (window.gapi && !apiInitialized) {
       if (!window.gapi.client.youtube) {
-        window.gapi.client.load('youtube', 'v3', () => {
-          console.log('YouTube API initialized in DashboardWithYoutube');
-          setApiInitialized(true);
+        // Use gapi directly instead of client.load
+        window.gapi.load('client:auth2', () => {
+          window.gapi.client.setApiKey('');
+          window.gapi.client.init({
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
+          }).then(() => {
+            console.log('YouTube API initialized in DashboardWithYoutube');
+            setApiInitialized(true);
+          }).catch(err => {
+            console.error('Error initializing YouTube API:', err);
+          });
         });
       } else {
         setApiInitialized(true);

@@ -582,6 +582,7 @@ declare global {
         setToken: (token: { access_token: string } | null) => void;
         setApiKey: (apiKey: string) => void;
         youtube: any;
+        load: (apiName: string, version: string, callback: () => void) => void;
       };
     };
     google: {
