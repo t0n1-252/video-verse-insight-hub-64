@@ -50,7 +50,22 @@ const loadGisClient = async () => {
     script.defer = true;
     script.onload = () => {
       console.log('Google Identity Services loaded successfully');
-      resolve();
+      // Add a small delay to ensure the script is fully initialized
+      setTimeout(() => {
+        if (window.google && window.google.accounts) {
+          resolve();
+        } else {
+          console.warn('Google Identity Services loaded but not available yet, retrying...');
+          // Try again in 100ms
+          setTimeout(() => {
+            if (window.google && window.google.accounts) {
+              resolve();
+            } else {
+              reject(new Error('Google Identity Services not available after loading'));
+            }
+          }, 100);
+        }
+      }, 50);
     };
     script.onerror = (error) => {
       console.error('Error loading Google Identity Services:', error);
@@ -176,6 +191,15 @@ export const useYouTubeAuth = () => {
             if (window.gapi && window.gapi.client) {
               window.gapi.client.setToken({ access_token: savedToken });
             }
+            
+            // Verify the token is still valid by attempting to fetch user profile
+            fetchUserProfile(savedToken).catch(() => {
+              // If profile fetch fails, token is likely expired - sign out
+              console.log('Saved token appears to be invalid - clearing auth state');
+              localStorage.removeItem('youtube_access_token');
+              localStorage.removeItem('youtube_user');
+              setAuthState(initialAuthState);
+            });
           } catch (err) {
             // Invalid stored data, clear it
             localStorage.removeItem('youtube_access_token');
@@ -222,79 +246,111 @@ export const useYouTubeAuth = () => {
     };
   }, [credentialsConfigured, toast]);
 
+  // Helper function to fetch user profile
+  const fetchUserProfile = async (accessToken: string) => {
+    try {
+      // Use fetch API with cross-origin credentials
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include', // Include cookies for cross-origin requests
+      });
+      
+      if (!response.ok) {
+        console.error(`Failed to fetch user profile: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch user profile: ${response.status}`);
+      }
+      
+      const userData = await response.json();
+      
+      return {
+        name: userData.name || 'YouTube User',
+        email: userData.email || '',
+        picture: userData.picture || ''
+      };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      throw error;
+    }
+  }
+
   // Helper function to handle successful authentication
   const handleAuthSuccess = async (accessToken: string) => {
+    console.log('Successfully obtained access token, now fetching user profile');
+    
     try {
-      // Get user info using Google API
+      // Set the token for Google API calls
       if (window.gapi && window.gapi.client) {
         window.gapi.client.setToken({ access_token: accessToken });
-        
-        // Fetch user profile with error handling
-        try {
-          const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`
-            }
-          });
-          
-          if (!response.ok) {
-            console.error(`Failed to fetch user profile: ${response.status} ${response.statusText}`);
-            throw new Error(`Failed to fetch user profile: ${response.status}`);
-          }
-          
-          const userData = await response.json();
-          
-          const user = {
-            name: userData.name || 'YouTube User',
-            email: userData.email || '',
-            picture: userData.picture || ''
-          };
-          
-          // Save authentication state
-          setAuthState({
-            isSignedIn: true,
-            accessToken,
-            user
-          });
-          
-          // Store in localStorage for persistence
-          localStorage.setItem('youtube_access_token', accessToken);
-          localStorage.setItem('youtube_user', JSON.stringify(user));
-          
-          toast({
-            title: "Successfully connected",
-            description: `Welcome, ${user.name}! Your YouTube account is now connected.`,
-            variant: "default",
-          });
-          
-          // Clear any previous errors
-          setError(null);
-        } catch (error) {
-          console.error('Error getting user profile:', error);
-          // Still set the token even if we couldn't get user details
-          setAuthState({
-            isSignedIn: true,
-            accessToken,
-            user: null
-          });
-          
-          // Store token in localStorage
-          localStorage.setItem('youtube_access_token', accessToken);
-          
-          toast({
-            title: "Partially connected",
-            description: "Your YouTube account is connected, but we couldn't fetch your profile details.",
-            variant: "default",
-          });
-        }
       }
-    } catch (error) {
-      console.error('Error in handleAuthSuccess:', error);
-      // Still set the token even if we couldn't get user details
+      
+      // Set auth state with token first, so user can use the app even if profile fetch fails
       setAuthState({
         isSignedIn: true,
         accessToken,
-        user: null
+        user: null // Will be updated after profile fetch
+      });
+      
+      // Store token in localStorage
+      localStorage.setItem('youtube_access_token', accessToken);
+      
+      // Try to fetch user profile with multiple retries
+      let user = null;
+      let retries = 3;
+      
+      while (retries > 0 && !user) {
+        try {
+          user = await fetchUserProfile(accessToken);
+          break;
+        } catch (err) {
+          console.warn(`User profile fetch attempt failed, ${retries - 1} retries left`);
+          retries--;
+          
+          if (retries > 0) {
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      if (user) {
+        // Update auth state with user profile
+        setAuthState({
+          isSignedIn: true,
+          accessToken,
+          user
+        });
+        
+        // Store in localStorage for persistence
+        localStorage.setItem('youtube_user', JSON.stringify(user));
+        
+        toast({
+          title: "Successfully connected",
+          description: `Welcome, ${user.name}! Your YouTube account is now connected.`,
+          variant: "default",
+        });
+      } else {
+        // Still logged in but couldn't get profile
+        toast({
+          title: "Partially connected",
+          description: "Your YouTube account is connected, but we couldn't fetch your profile details.",
+          variant: "default",
+        });
+      }
+      
+      // Clear any previous errors
+      setError(null);
+    } catch (error) {
+      console.error('Error in handleAuthSuccess:', error);
+      
+      // We're still authenticated, just couldn't get user details
+      toast({
+        title: "Partially connected",
+        description: "Your YouTube account is connected, but we couldn't fetch your profile details.",
+        variant: "default",
       });
     }
   };
@@ -321,6 +377,10 @@ export const useYouTubeAuth = () => {
         });
         throw error;
       }
+      
+      // Clear previous auth state to prevent conflicts
+      localStorage.removeItem('youtube_access_token');
+      localStorage.removeItem('youtube_user');
       
       // Log the current origin for debugging
       console.log('Current origin:', window.location.origin);

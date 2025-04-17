@@ -21,7 +21,8 @@ const DashboardWithYoutube = () => {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);
-  const { accessToken, isSignedIn, error } = useYouTubeAuth();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { accessToken, isSignedIn, error, user } = useYouTubeAuth();
   const { toast } = useToast();
   const currentDomain = window.location.origin;
 
@@ -36,6 +37,7 @@ const DashboardWithYoutube = () => {
     
     try {
       setLoading(true);
+      setLoadError(null);
       const videoData = await fetchChannelVideos(accessToken);
       setVideos(videoData);
       
@@ -54,6 +56,7 @@ const DashboardWithYoutube = () => {
       }
     } catch (error) {
       console.error("Error loading videos:", error);
+      setLoadError("Failed to load videos. Please try signing out and in again.");
       toast({
         title: "Error loading videos",
         description: "There was a problem fetching your videos. Please try again.",
@@ -101,6 +104,28 @@ const DashboardWithYoutube = () => {
         )}
 
         <AuthRequired>
+          {isSignedIn && user ? (
+            <div className="mb-4 p-4 bg-gray-800 rounded-md">
+              <div className="flex items-center">
+                {user.picture && (
+                  <img 
+                    src={user.picture} 
+                    alt={user.name} 
+                    className="w-10 h-10 rounded-full mr-3" 
+                  />
+                )}
+                <div>
+                  <p className="font-medium text-white">{user.name}</p>
+                  {user.email && <p className="text-sm text-gray-400">{user.email}</p>}
+                </div>
+              </div>
+            </div>
+          ) : isSignedIn ? (
+            <div className="mb-4 p-4 bg-gray-800 rounded-md">
+              <p className="text-yellow-400">Connected to YouTube, but user profile could not be loaded.</p>
+            </div>
+          ) : null}
+
           <Tabs defaultValue="dashboard">
             <TabsList className="mb-6">
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -128,6 +153,11 @@ const DashboardWithYoutube = () => {
                   <ThreeDotsFade color="#3b82f6" height={40} />
                   <p className="mt-4 text-gray-400">Loading your videos...</p>
                 </div>
+              ) : loadError ? (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{loadError}</AlertDescription>
+                </Alert>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

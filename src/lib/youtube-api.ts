@@ -56,71 +56,100 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
       throw new Error('Google API client not loaded');
     }
     
+    console.log('Fetching channel videos with access token');
+    
     // Set the access token for this request
     window.gapi.client.setApiKey('');
     window.gapi.client.setToken({ access_token: accessToken });
     
     // Get the authenticated user's channel ID
-    const channelResponse = await window.gapi.client.youtube.channels.list({
-      part: 'id,snippet',
-      mine: true
-    });
-    
-    if (!channelResponse.result.items || channelResponse.result.items.length === 0) {
-      console.log('No channel found for the authenticated user');
-      return [];
-    }
-    
-    const channelId = channelResponse.result.items[0].id;
-    
-    // Get videos from the user's channel
-    const videosResponse = await window.gapi.client.youtube.search.list({
-      part: 'snippet',
-      channelId: channelId,
-      maxResults: 50,
-      order: 'date',
-      type: 'video'
-    });
-    
-    if (!videosResponse.result.items) {
-      return [];
-    }
-    
-    // Get additional video details (view counts, etc.)
-    const videoIds = videosResponse.result.items
-      .map(item => item.id?.videoId)
-      .filter(Boolean);
+    try {
+      console.log('Fetching user channel');
+      const channelResponse = await window.gapi.client.youtube.channels.list({
+        part: 'id,snippet',
+        mine: true
+      });
       
-    if (videoIds.length === 0) return [];
-    
-    const videoDetailsResponse = await window.gapi.client.youtube.videos.list({
-      part: 'statistics,snippet,contentDetails',
-      id: videoIds.join(',')
-    });
-    
-    if (!videoDetailsResponse.result.items) {
-      return [];
-    }
-    
-    // Map the response to our Video interface
-    return videoDetailsResponse.result.items.map(video => {
-      const snippet = video.snippet || {};
-      const statistics = video.statistics || {};
-      const thumbnails = snippet.thumbnails || {};
+      if (!channelResponse.result.items || channelResponse.result.items.length === 0) {
+        console.log('No channel found for the authenticated user');
+        return [];
+      }
       
-      return {
-        id: video.id || '',
-        title: snippet.title || 'Untitled Video',
-        thumbnail: thumbnails.high?.url || thumbnails.default?.url || '',
-        publishDate: snippet.publishedAt || '',
-        viewCount: statistics.viewCount || '0',
-        commentCount: parseInt(statistics.commentCount || '0'),
-        description: snippet.description || '',
-        likeCount: statistics.likeCount || '0',
-        channelId: snippet.channelId || '',
-        channelTitle: snippet.channelTitle || '',
-      };
-    });
+      const channelId = channelResponse.result.items[0].id;
+      console.log('Found channel ID:', channelId);
+      
+      // Get videos from the user's channel
+      console.log('Fetching videos for channel', channelId);
+      const videosResponse = await window.gapi.client.youtube.search.list({
+        part: 'snippet',
+        channelId: channelId,
+        maxResults: 50,
+        order: 'date',
+        type: 'video'
+      });
+      
+      if (!videosResponse.result.items) {
+        console.log('No videos found for channel');
+        return [];
+      }
+      
+      // Get additional video details (view counts, etc.)
+      const videoIds = videosResponse.result.items
+        .map(item => item.id?.videoId)
+        .filter(Boolean);
+        
+      if (videoIds.length === 0) {
+        console.log('No valid video IDs found');
+        return [];
+      }
+      
+      console.log('Fetching details for', videoIds.length, 'videos');
+      const videoDetailsResponse = await window.gapi.client.youtube.videos.list({
+        part: 'statistics,snippet,contentDetails',
+        id: videoIds.join(',')
+      });
+      
+      if (!videoDetailsResponse.result.items) {
+        console.log('No video details returned');
+        return [];
+      }
+      
+      console.log('Successfully fetched details for', videoDetailsResponse.result.items.length, 'videos');
+      
+      // Map the response to our Video interface
+      return videoDetailsResponse.result.items.map(video => {
+        const snippet = video.snippet || {};
+        const statistics = video.statistics || {};
+        const thumbnails = snippet.thumbnails || {};
+        
+        return {
+          id: video.id || '',
+          title: snippet.title || 'Untitled Video',
+          thumbnail: thumbnails.high?.url || thumbnails.default?.url || '',
+          publishDate: snippet.publishedAt || '',
+          viewCount: statistics.viewCount || '0',
+          commentCount: parseInt(statistics.commentCount || '0'),
+          description: snippet.description || '',
+          likeCount: statistics.likeCount || '0',
+          channelId: snippet.channelId || '',
+          channelTitle: snippet.channelTitle || '',
+        };
+      });
+    } catch (error: any) {
+      console.error('Error in YouTube API request:', error);
+      
+      // Check for common auth errors
+      if (error.result && error.result.error) {
+        console.error('YouTube API error:', error.result.error.message);
+        
+        // If access token is expired or invalid
+        if (error.result.error.code === 401) {
+          throw new Error('Authentication expired. Please sign in again.');
+        }
+      }
+      
+      throw error;
+    }
   } catch (error) {
     console.error('Error fetching channel videos:', error);
     throw error;
