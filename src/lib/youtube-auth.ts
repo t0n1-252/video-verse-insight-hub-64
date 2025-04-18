@@ -53,26 +53,26 @@ export const useYouTubeAuth = () => {
           return;
         }
         
+        // Load GAPI and GIS clients
         await Promise.all([loadGapiClient(), loadGisClient()]);
         console.log("Successfully loaded both API clients");
         
+        // Initialize the OAuth token client
         if (window.google && window.google.accounts && window.google.accounts.oauth2) {
-          const client = window.google.accounts.oauth2.initTokenClient({
+          const tokenClientOptions = {
             client_id: CLIENT_ID,
             scope: SCOPES.join(' '),
             redirect_uri: REDIRECT_URI,
             callback: (tokenResponse: any) => {
               if (tokenResponse && tokenResponse.access_token) {
                 console.log("Token received from Google OAuth", tokenResponse.access_token.substring(0, 10) + "...");
-                
                 sessionStorage.setItem(TOKEN_TIMESTAMP_KEY, Date.now().toString());
-                
                 handleAuthSuccess(tokenResponse.access_token);
               }
             },
             error_callback: (error: any) => {
               console.error('Token client error:', error);
-              setError(new Error(error.toString()));
+              setError(new Error(typeof error === 'string' ? error : JSON.stringify(error)));
               setIsInitializing(false);
               
               toast({
@@ -81,8 +81,15 @@ export const useYouTubeAuth = () => {
                 variant: "destructive",
               });
             }
+          };
+          
+          console.log("Initializing token client with options:", {
+            client_id: tokenClientOptions.client_id,
+            scope: tokenClientOptions.scope, 
+            redirect_uri: tokenClientOptions.redirect_uri
           });
           
+          const client = window.google.accounts.oauth2.initTokenClient(tokenClientOptions);
           setTokenClient(client);
           console.log("Token client initialized successfully");
         } else {
@@ -90,6 +97,7 @@ export const useYouTubeAuth = () => {
           setError(new Error('Google Identity Services not available'));
         }
         
+        // Check for existing token
         const savedToken = localStorage.getItem(TOKEN_KEY);
         const savedUser = localStorage.getItem(USER_KEY);
         
@@ -108,6 +116,7 @@ export const useYouTubeAuth = () => {
                 description: "Your YouTube session has expired. Please sign in again.",
                 variant: "default",
               });
+              setIsInitializing(false);
               return;
             }
             
@@ -186,7 +195,7 @@ export const useYouTubeAuth = () => {
   }, [credentialsConfigured, toast]);
 
   const handleAuthSuccess = async (accessToken: string) => {
-    console.log('Authentication successful, token received');
+    console.log('Authentication successful, token received with length:', accessToken.length);
     
     try {
       console.log('Validating the new token...');
@@ -220,6 +229,7 @@ export const useYouTubeAuth = () => {
         variant: "default",
       });
       
+      // Fetch user profile with retries
       let user = null;
       let retries = 3;
       let lastError = null;
@@ -238,16 +248,21 @@ export const useYouTubeAuth = () => {
           console.log("User profile retrieved on attempt", attempt, user);
           
           if (user) {
-            await storeYouTubeUser({
-              youtube_user_id: user.id || `youtube_${Date.now()}`,
-              name: user.name,
-              email: user.email,
-              picture: user.picture,
-              access_token: accessToken
-            });
+            try {
+              await storeYouTubeUser({
+                youtube_user_id: user.id || `youtube_${Date.now()}`,
+                name: user.name,
+                email: user.email,
+                picture: user.picture,
+                access_token: accessToken
+              });
+              console.log("Stored user data in Supabase successfully");
+            } catch (storeError) {
+              console.error("Error storing user in Supabase:", storeError);
+              // Continue even if storage fails
+            }
+            break;
           }
-          
-          break;
         } catch (err) {
           lastError = err;
           console.warn(`User profile fetch attempt ${attempt} failed:`, err);
@@ -342,6 +357,7 @@ export const useYouTubeAuth = () => {
         throw error;
       }
       
+      // Clear any existing tokens
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       sessionStorage.removeItem(TOKEN_TIMESTAMP_KEY);
@@ -349,13 +365,14 @@ export const useYouTubeAuth = () => {
       
       console.log('Current origin:', window.location.origin);
       console.log('Current path:', window.location.pathname);
-      console.log('Initiating OAuth flow with prompt=consent for /mock-dashboard');
+      console.log('Initiating OAuth flow with prompt=consent');
       
+      // Request with explicit consent to ensure a fresh token
       tokenClient.requestAccessToken({
         prompt: 'consent',
         hint: '',
         state: window.location.pathname,
-        enable_serial_consent: true
+        enable_serial_consent: true // This helps with some OAuth flows
       });
       
       return true;

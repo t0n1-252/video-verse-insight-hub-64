@@ -33,111 +33,23 @@ export const fetchChannelVideos = async (accessToken: string): Promise<Video[]> 
     console.log("fetchChannelVideos called with token length:", accessToken?.length);
     console.log("Token starts with:", accessToken?.substring(0, 5) + "...");
     
-    // First check if we can access the gapi client
-    if (!window.gapi) {
-      console.error('GAPI not available');
-      throw new Error('Google API client not available');
-    }
+    // First ensure GAPI is loaded and initialized
+    await initializeAndPrepareGapi(accessToken);
     
-    if (!window.gapi.client) {
-      console.error('GAPI client not available');
-      await initializeGapiClient(accessToken);
-    }
-    
-    if (!accessToken) {
-      console.error('No access token provided');
-      throw new Error('No access token provided');
-    }
-    
-    console.log('Setting up YouTube API with token...');
-    
-    // Set up the API with the provided access token
-    window.gapi.client.setApiKey('');
+    // This is important: we need to set the token in GAPI client every time
     window.gapi.client.setToken({ access_token: accessToken });
     console.log('Token set in GAPI client');
     
-    // Ensure YouTube API is loaded
-    return new Promise<Video[]>((resolve, reject) => {
-      // Check if YouTube API is already available
-      if (!window.gapi.client.youtube) {
-        console.log('YouTube API not initialized, loading explicitly...');
-        
-        window.gapi.client.load('youtube', 'v3', () => {
-          console.log('YouTube API loaded explicitly, proceeding with fetch');
-          // Reset token after initialization
-          window.gapi.client.setToken({ access_token: accessToken });
-          
-          // Add delay to ensure API is fully initialized
-          setTimeout(() => {
-            fetchVideosAfterInit(accessToken)
-              .then(videos => {
-                console.log(`Fetched ${videos.length} videos after explicit API loading`);
-                resolve(videos);
-              })
-              .catch(err => {
-                console.error('Error fetching videos after API init:', err);
-                reject(err);
-              });
-          }, 1000);
-        });
-      } else {
-        console.log('YouTube API already initialized, proceeding with fetch');
-        // API already initialized, fetch directly
-        fetchVideosAfterInit(accessToken)
-          .then(videos => {
-            console.log(`Fetched ${videos.length} videos with existing API`);
-            resolve(videos);
-          })
-          .catch(err => {
-            console.error('Error fetching videos directly:', err);
-            reject(err);
-          });
-      }
-    });
-  } catch (error) {
-    console.error('Error in fetchChannelVideos:', error);
-    throw error;
-  }
-};
-
-// Helper function to initialize the GAPI client if needed
-const initializeGapiClient = async (accessToken: string): Promise<void> => {
-  return new Promise<void>((resolve, reject) => {
-    if (window.gapi) {
-      window.gapi.load('client', async () => {
-        try {
-          await window.gapi.client.init({
-            apiKey: '',
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
-          });
-          
-          // Set token immediately after initialization
-          window.gapi.client.setToken({ access_token: accessToken });
-          console.log('GAPI client initialized manually');
-          resolve();
-        } catch (error) {
-          console.error('Error initializing GAPI client:', error);
-          reject(error);
-        }
-      });
-    } else {
-      console.error('GAPI not available for initialization');
-      reject(new Error('Google API client not available'));
+    // Verify YouTube API is loaded
+    if (!window.gapi.client.youtube) {
+      console.log('YouTube API not loaded yet, loading it now');
+      await loadYouTubeAPI();
+      
+      // Set token again after loading
+      window.gapi.client.setToken({ access_token: accessToken });
     }
-  });
-};
-
-// Helper function to fetch videos after API initialization
-const fetchVideosAfterInit = async (accessToken: string): Promise<Video[]> => {
-  try {
-    // Make sure token is set before making requests
-    window.gapi.client.setToken({ access_token: accessToken });
     
-    // Debug output to trace execution
-    console.log('Fetching videos after init with token, YouTube API available:', !!window.gapi.client.youtube);
-    
-    // Add safety delay to ensure API is fully initialized
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('Beginning to fetch videos, YouTube API available:', !!window.gapi.client.youtube);
     
     // Get the authenticated user's channel ID
     console.log('Requesting user channel');
@@ -225,9 +137,52 @@ const fetchVideosAfterInit = async (accessToken: string): Promise<Video[]> => {
     console.log(`Successfully fetched ${videos.length} videos`);
     return videos;
   } catch (error) {
-    console.error('Error in fetchVideosAfterInit:', error);
+    console.error('Error in fetchChannelVideos:', error);
     throw error;
   }
+};
+
+// Improved initialization function to ensure GAPI is fully loaded
+const initializeAndPrepareGapi = async (accessToken: string): Promise<void> => {
+  if (!window.gapi) {
+    throw new Error('Google API client not available - please check if it loaded correctly');
+  }
+  
+  // Initialize client if not already done
+  if (!window.gapi.client) {
+    await new Promise<void>((resolve, reject) => {
+      window.gapi.load('client', {
+        callback: async () => {
+          try {
+            await window.gapi.client.init({
+              apiKey: '', // No API key needed for OAuth flow
+              discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
+            });
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        },
+        onerror: (err) => {
+          console.error('Error loading GAPI client:', err);
+          reject(err);
+        }
+      });
+    });
+  }
+  
+  // Always set the token
+  window.gapi.client.setToken({ access_token: accessToken });
+};
+
+// Helper function to load the YouTube API
+const loadYouTubeAPI = async (): Promise<void> => {
+  return new Promise<void>((resolve, reject) => {
+    window.gapi.client.load('youtube', 'v3', () => {
+      console.log('YouTube API loaded successfully');
+      resolve();
+    });
+  });
 };
 
 // Function to fetch comments for a specific video
@@ -245,4 +200,3 @@ export const analyzeSentiment = (comments: Comment[]): { positive: number; neutr
 export const generateContentOpportunities = (comments: Comment[]): any[] => {
   return [];
 };
-
