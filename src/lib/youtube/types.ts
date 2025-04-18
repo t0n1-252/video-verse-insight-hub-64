@@ -17,7 +17,10 @@ declare global {
     gapi: {
       load: (
         apiName: string,
-        callback: () => void
+        callback: {
+          callback?: () => void;
+          onerror?: (error: any) => void;
+        } | (() => void)
       ) => void;
       client: {
         init: (config: {
@@ -29,6 +32,14 @@ declare global {
         setToken: (token: { access_token: string } | null) => void;
         setApiKey: (apiKey: string) => void;
         youtube: any;
+        people?: {
+          people: {
+            get: (params: {
+              resourceName: string;
+              personFields: string;
+            }) => Promise<any>;
+          };
+        };
         load: (apiName: string, version: string, callback: () => void) => void;
       };
     };

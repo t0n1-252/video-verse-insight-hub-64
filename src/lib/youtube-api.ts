@@ -152,13 +152,16 @@ const initializeAndPrepareGapi = async (accessToken: string): Promise<void> => {
   if (!window.gapi.client) {
     await new Promise<void>((resolve, reject) => {
       window.gapi.load('client', {
-        callback: async () => {
+        callback: () => {
           try {
-            await window.gapi.client.init({
+            window.gapi.client.init({
               apiKey: '', // No API key needed for OAuth flow
               discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest']
+            }).then(() => {
+              resolve();
+            }).catch((err: any) => {
+              reject(err);
             });
-            resolve();
           } catch (err) {
             reject(err);
           }

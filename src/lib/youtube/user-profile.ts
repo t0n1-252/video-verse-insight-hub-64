@@ -1,4 +1,3 @@
-
 import { checkTokenValidity } from './config';
 
 // Function to fetch user profile data
