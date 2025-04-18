@@ -1,17 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
-import { Calendar, Eye, MessageSquare, Flag, ThumbsUp, Activity, HelpCircle, AlertCircle, Flame, CircleDot } from "lucide-react";
+import { Flag, Eye, MessageSquare, AlertCircle, ThumbsUp, Activity, HelpCircle, CircleDot, Flame } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreeDotsFade } from "react-svg-spinners";
 import CommentList, { Comment as UiComment } from "@/components/CommentList";
-import ContentOpportunities from "@/components/ContentOpportunities";
 import VideoOverviewTab from "@/components/video-analysis/VideoOverviewTab";
-import VideoInfoCards from "@/components/video-analysis/VideoInfoCards";
 import { useYouTubeAuth } from "@/lib/youtube-auth";
-import { Video, Comment as ApiComment, fetchVideoComments, analyzeSentiment, generateContentOpportunities } from "@/lib/youtube-api";
+import { Video, Comment as ApiComment } from "@/lib/youtube-api";
 import { mapApiCommentsToUiComments } from "@/lib/youtube/comment-mapper";
 import { mockComments } from "@/lib/youtube/mock/comments-data";
 
@@ -168,42 +165,42 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
       <Tabs defaultValue="priority" className="space-y-6">
         <TabsList className="bg-gray-800 border-gray-700">
           <TabsTrigger value="priority" className="data-[state=active]:bg-gray-700">
-            <Flag className="w-4 h-4 mr-2" />
+            <Flag className="mr-2 text-purple-400" size={16} />
             Priority Comments
             <Badge variant="secondary" className="ml-2 bg-purple-500/30 text-purple-200">{priorityComments.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="hot-leads" className="data-[state=active]:bg-gray-700">
-            <Flame className="w-4 h-4 mr-2" />
+            <Flame className="mr-2 text-red-400" size={16} />
             Hot Leads
             <Badge variant="secondary" className="ml-2 bg-red-500/30 text-red-200">{hotLeads.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="most-liked" className="data-[state=active]:bg-gray-700">
-            <ThumbsUp className="w-4 h-4 mr-2" />
+            <ThumbsUp className="mr-2 text-blue-400" size={16} />
             Most Liked
             <Badge variant="secondary" className="ml-2 bg-blue-500/30 text-blue-200">{mostLiked.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="most-engaged" className="data-[state=active]:bg-gray-700">
-            <Activity className="w-4 h-4 mr-2" />
+            <Activity className="mr-2 text-amber-400" size={16} />
             Most Engagement
             <Badge variant="secondary" className="ml-2 bg-amber-500/30 text-amber-200">{mostEngaged.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="questions" className="data-[state=active]:bg-gray-700">
-            <HelpCircle className="w-4 h-4 mr-2" />
+            <HelpCircle className="mr-2 text-blue-400" size={16} />
             Questions
             <Badge variant="secondary" className="ml-2 bg-blue-500/30 text-blue-200">{questions.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="testimonials" className="data-[state=active]:bg-gray-700">
-            <MessageSquare className="w-4 h-4 mr-2" />
+            <MessageSquare className="mr-2 text-green-400" size={16} />
             Testimonials
             <Badge variant="secondary" className="ml-2 bg-green-500/30 text-green-200">{testimonials.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="complaints" className="data-[state=active]:bg-gray-700">
-            <AlertCircle className="w-4 h-4 mr-2" />
+            <AlertCircle className="mr-2 text-amber-400" size={16} />
             Complaints
             <Badge variant="secondary" className="ml-2 bg-amber-500/30 text-amber-200">{complaints.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="neutral" className="data-[state=active]:bg-gray-700">
-            <CircleDot className="w-4 h-4 mr-2" />
+            <CircleDot className="mr-2 text-gray-400" size={16} />
             Neutral
             <Badge variant="secondary" className="ml-2 bg-gray-500/30 text-gray-200">{neutral.length}</Badge>
           </TabsTrigger>
