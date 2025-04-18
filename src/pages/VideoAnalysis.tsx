@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,7 @@ const VideoAnalysis = ({ video: propVideo }: { video?: Video }) => {
   const { videoId } = useParams();
   const navigate = useNavigate();
   const [video, setVideo] = useState<Video | null>(propVideo || null);
+  const [activeTab, setActiveTab] = useState("overview");
   const [apiComments, setApiComments] = useState<ApiComment[]>([]);
   const [comments, setComments] = useState<UiComment[]>([]);
   const [loading, setLoading] = useState(false);
