@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreeDotsFade } from "react-svg-spinners";
-import CommentList from "@/components/CommentList";
+import CommentList, { Comment as UiComment } from "@/components/CommentList";
 import ContentOpportunities from "@/components/ContentOpportunities";
 import VideoOverviewTab from "@/components/video-analysis/VideoOverviewTab";
 import VideoInfoCards from "@/components/video-analysis/VideoInfoCards";
