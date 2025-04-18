@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 import { Calendar, Eye, MessageSquare, Flag, ThumbsUp, Activity, HelpCircle, AlertCircle, Flame } from "lucide-react";
@@ -14,51 +15,113 @@ import { Video, Comment as ApiComment, fetchVideoComments, analyzeSentiment, gen
 import { mapApiCommentsToUiComments } from "@/lib/youtube/comment-mapper";
 import { mockComments } from "@/lib/youtube/mock/comments-data";
 
+// Mock data for demonstration
+const MOCK_VIDEOS = [
+  {
+    id: "video1",
+    title: "How to Build a React App in 10 Minutes",
+    thumbnail: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=800&auto=format&fit=crop",
+    publishDate: "2023-12-15",
+    viewCount: 45231,
+    commentCount: 378,
+    likeCount: 2134,
+    description: "A quick tutorial on building React applications"
+  },
+  {
+    id: "video2",
+    title: "Advanced TypeScript Tips for Developers",
+    thumbnail: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&auto=format&fit=crop",
+    publishDate: "2024-01-22",
+    viewCount: 32182,
+    commentCount: 256,
+    likeCount: 1872,
+    description: "Learn advanced TypeScript features"
+  },
+  {
+    id: "video3",
+    title: "Creating Custom Hooks in React",
+    thumbnail: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop",
+    publishDate: "2024-02-05",
+    viewCount: 28933,
+    commentCount: 194,
+    likeCount: 1543,
+    description: "Improve your React code with custom hooks"
+  },
+  {
+    id: "video4",
+    title: "State Management with Redux Toolkit",
+    thumbnail: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=800&auto=format&fit=crop",
+    publishDate: "2024-03-10",
+    viewCount: 19845,
+    commentCount: 132,
+    likeCount: 876,
+    description: "Simplify state management with Redux Toolkit"
+  }
+];
+
 interface VideoAnalysisProps {
   video?: Video;
 }
 
 const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
   const { videoId } = useParams();
+  const navigate = useNavigate();
   const [video, setVideo] = useState<Video | null>(propVideo || null);
   const [activeTab, setActiveTab] = useState("overview");
   const [apiComments, setApiComments] = useState<ApiComment[]>([]);
   const [comments, setComments] = useState<UiComment[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sentiment, setSentiment] = useState({ positive: 65, neutral: 25, negative: 10 });
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const { accessToken } = useYouTubeAuth();
 
   useEffect(() => {
-    if (propVideo) {
-      setVideo(propVideo);
-    } else if (videoId) {
-      console.log("Would fetch video details for:", videoId);
-    }
+    // Simulate loading data (short timeout to improve UX)
+    setTimeout(() => {
+      if (propVideo) {
+        setVideo(propVideo);
+        setLoading(false);
+      } else if (videoId) {
+        // Find the mock video with the matching ID
+        const foundVideo = MOCK_VIDEOS.find(v => v.id === videoId);
+        if (foundVideo) {
+          setVideo(foundVideo as Video);
+          // Load mock comments
+          const uiComments = mapApiCommentsToUiComments(mockComments);
+          setComments(uiComments);
+          setLoading(false);
+        } else {
+          console.log("Video not found:", videoId);
+          setLoading(false);
+        }
+      }
+    }, 500);
   }, [videoId, propVideo]);
 
-  const loadComments = async () => {
-    try {
-      const commentsData = mockComments;
-      setApiComments(commentsData);
-      
-      const uiComments = mapApiCommentsToUiComments(commentsData);
-      setComments(uiComments);
-      
-      const sentimentData = { positive: 65, neutral: 25, negative: 10 };
-      setSentiment(sentimentData);
-      
-      setOpportunities([]);
-    } catch (error) {
-      console.error("Error loading comments:", error);
-    }
+  const goBack = () => {
+    navigate(-1);
   };
 
-  if (!video) {
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <ThreeDotsFade color="#3b82f6" height={40} />
         <p className="mt-4 text-gray-400">Loading video details...</p>
+      </div>
+    );
+  }
+
+  if (!video) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-gray-400">Video not found.</p>
+        <button 
+          onClick={goBack}
+          className="mt-4 flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-md text-white hover:bg-blue-700"
+        >
+          <ArrowLeft size={16} />
+          Go Back
+        </button>
       </div>
     );
   }
@@ -75,7 +138,7 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center">
-          <ArrowLeft className="mr-2 cursor-pointer text-gray-400 hover:text-gray-200" onClick={() => window.history.back()} />
+          <ArrowLeft className="mr-2 cursor-pointer text-gray-400 hover:text-gray-200" onClick={goBack} />
           <h2 className="text-2xl font-bold text-gray-100">{video.title}</h2>
         </div>
         <div className="flex items-center gap-4 text-sm text-gray-400 ml-8">
