@@ -17,7 +17,7 @@ export const SCOPES = [
   'https://www.googleapis.com/auth/youtube'
 ];
 
-// Use the full origin (domain) as the redirect URI without the path
+// Use the exact domain of the current application for redirect
 export const REDIRECT_URI = window.location.origin;
 
 // Log the redirect URI for debugging purposes
@@ -25,7 +25,8 @@ console.log('YouTube OAuth REDIRECT_URI set to:', REDIRECT_URI);
 console.log('Full window location:', {
   origin: window.location.origin,
   pathname: window.location.pathname,
-  href: window.location.href
+  href: window.location.href,
+  domain: window.location.hostname
 });
 
 // Initial auth state

@@ -25,7 +25,8 @@ const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
     isInitializing, 
     credentialsConfigured,
     hasError: !!error,
-    hasToken: !!accessToken
+    hasToken: !!accessToken,
+    domain: window.location.hostname
   });
   
   // Handle authentication errors - trigger a refresh when needed
@@ -34,7 +35,9 @@ const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
       console.log("Auth error detected:", error.message);
       if (error.message.includes("expired") || 
           error.message.includes("rejected") ||
-          error.message.includes("revoked")) {
+          error.message.includes("revoked") ||
+          error.message.includes("runtime.lastError") ||
+          error.message.includes("message channel closed")) {
         console.log("Critical auth error detected, clearing session");
         clearSession();
         setForceReload(true);
@@ -77,7 +80,7 @@ const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <Spinner className="h-8 w-8 border-t-2 mb-4" />
-        <p className="text-gray-400">Initializing YouTube connection...</p>
+        <p className="text-gray-400">Initializing YouTube connection for {window.location.hostname}...</p>
       </div>
     );
   }

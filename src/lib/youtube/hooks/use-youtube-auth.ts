@@ -15,6 +15,7 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
   const [tokenClient, setTokenClient] = useState<any>(null);
   const [profileFetchError, setProfileFetchError] = useState<string | null>(null);
   const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false);
+  const currentDomain = useRef(window.location.hostname);
   
   const toast = useToast();
   const authManager = new YouTubeAuthManager(toast);
@@ -26,6 +27,15 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
       setIsInitializing(false);
       return;
     }
+
+    // Check if domain has changed since last auth - if so, clear session
+    const storedDomain = localStorage.getItem('youtube_auth_domain');
+    if (storedDomain && storedDomain !== currentDomain.current) {
+      console.log(`Domain changed from ${storedDomain} to ${currentDomain.current}. Clearing auth session.`);
+      clearSession();
+    }
+    // Store current domain
+    localStorage.setItem('youtube_auth_domain', currentDomain.current);
 
     const loadGoogleScript = () => {
       // Check if script is already loaded
