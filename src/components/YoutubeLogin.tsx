@@ -25,6 +25,10 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   const [signingIn, setSigningIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [domainInfo] = useState({
+    hostname: window.location.hostname,
+    origin: window.location.origin
+  });
 
   // If login is successful, call the callback
   useEffect(() => {
@@ -48,6 +52,11 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     }
   }, [profileFetchError, authError]);
 
+  // Log important domain information for debugging
+  useEffect(() => {
+    console.log("YoutubeLogin component mounted with domain info:", domainInfo);
+  }, [domainInfo]);
+
   const handleAuth = async () => {
     if (isSignedIn) {
       console.log("Signing out");
@@ -62,7 +71,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
       }
     } else {
       try {
-        console.log("Attempting to sign in");
+        console.log("Attempting to sign in from domain:", domainInfo.hostname);
         setAuthError(null);
         setSigningIn(true);
         
@@ -121,7 +130,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   };
 
   const handleForceReset = () => {
-    console.log("Force resetting entire auth state");
+    console.log("Force resetting entire auth state for domain:", domainInfo.hostname);
     
     clearSession();
     
@@ -161,15 +170,16 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     setSigningIn(false);
     setRetryCount(0);
     
-    // Force hard reload (skips cache)
+    // Force hard reload with cache clearing and domain info for debugging
     setTimeout(() => {
       window.location.href = window.location.href.split('?')[0] + 
-                           '?forceClear=' + Date.now();
+                           '?forceClear=' + Date.now() + 
+                           '&domain=' + encodeURIComponent(domainInfo.hostname);
     }, 300);
   };
 
   if (isInitializing) {
-    return <LoadingState message="Initializing YouTube connection..." />;
+    return <LoadingState message={`Initializing YouTube connection for ${domainInfo.hostname}...`} />;
   }
   
   if (!credentialsConfigured) {
