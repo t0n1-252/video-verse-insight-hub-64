@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
-import { Calendar, Eye, MessageSquare, Flag, ThumbsUp, Activity, HelpCircle, AlertCircle } from "lucide-react";
+import { Calendar, Eye, MessageSquare, Flag, ThumbsUp, Activity, HelpCircle, AlertCircle, Flame } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreeDotsFade } from "react-svg-spinners";
 import CommentList, { Comment as UiComment } from "@/components/CommentList";
@@ -94,7 +94,6 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
         </div>
       </div>
 
-      {/* Overview Section */}
       <VideoOverviewTab 
         video={{
           publishDate: video.publishDate,
@@ -106,7 +105,6 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
         onViewAllComments={() => {}}
       />
 
-      {/* Comments Tabs Section */}
       <Tabs defaultValue="priority" className="space-y-6">
         <TabsList className="bg-gray-800 border-gray-700">
           <TabsTrigger value="priority" className="data-[state=active]:bg-gray-700">
@@ -115,7 +113,7 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
             <Badge variant="secondary" className="ml-2 bg-purple-500/20 text-purple-400">{priorityComments.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="hot-leads" className="data-[state=active]:bg-gray-700">
-            <Activity className="w-4 h-4 mr-2" />
+            <Flame className="w-4 h-4 mr-2" />
             Hot Leads
             <Badge variant="secondary" className="ml-2 bg-green-500/20 text-green-400">{hotLeads.length}</Badge>
           </TabsTrigger>
