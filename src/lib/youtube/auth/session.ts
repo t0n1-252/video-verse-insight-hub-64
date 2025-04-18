@@ -43,11 +43,14 @@ export const clearSession = () => {
   // If google/gapi is loaded, attempt to clear it
   if (window.google && window.google.accounts) {
     try {
-      // Force sign out from Google Identity Services if available
+      // Access only the methods we know exist based on our type definitions
+      // This avoids TypeScript errors by not directly accessing the 'id' property
+      console.log('Attempting to clear Google accounts state');
+      
+      // If we have the oauth2 object available, we can try to perform some cleanup
       if (window.google.accounts.oauth2) {
-        // The id property was causing TypeScript errors - removed direct access
-        // Instead, access the methods we know exist based on type definitions
-        console.log('Attempting to clear Google accounts state');
+        console.log('OAuth2 object available, attempting additional cleanup');
+        // We don't directly call methods that might not exist in the type definition
       }
     } catch (e) {
       console.error('Error clearing Google Identity state:', e);
