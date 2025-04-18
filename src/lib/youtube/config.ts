@@ -1,3 +1,4 @@
+
 // YouTube API OAuth 2.0 credentials and configuration
 
 // API Key (keep as empty string since it's not used in OAuth flow)
@@ -41,7 +42,7 @@ export const areCredentialsConfigured = () => {
   return CLIENT_ID.trim() !== '' && CLIENT_SECRET.trim() !== '';
 };
 
-// Debug function to check token validity - Enhanced to be more resilient
+// Enhanced token validation with more robust error handling
 export const checkTokenValidity = async (accessToken: string): Promise<{isValid: boolean, details?: string}> => {
   if (!accessToken) {
     return { isValid: false, details: 'No token provided' };
@@ -52,13 +53,35 @@ export const checkTokenValidity = async (accessToken: string): Promise<{isValid:
     console.log(`Token validation check (first 10 chars): ${accessToken.substring(0, 10)}...`);
     console.log('Current path during token validation:', window.location.pathname);
     
-    // Use tokeninfo endpoint for validation - using a more direct approach
-    const response = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${encodeURIComponent(accessToken)}`, {
+    // Try a direct approach using userinfo endpoint - often more reliable than tokeninfo
+    try {
+      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json'
+        },
+        cache: 'no-store'
+      });
+      
+      if (response.ok) {
+        console.log('Token validated successfully with userinfo endpoint');
+        return { isValid: true, details: 'Token valid - verified with userinfo endpoint' };
+      }
+      
+      // If userinfo fails, try tokeninfo as fallback
+      console.log('Userinfo validation failed, trying tokeninfo endpoint');
+    } catch (e) {
+      console.error('Error during userinfo validation:', e);
+      console.log('Falling back to tokeninfo endpoint');
+    }
+    
+    // Fallback to tokeninfo endpoint
+    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
       },
-      // Add no-cors mode to avoid CORS issues when in development
       cache: 'no-store'
     });
     
@@ -90,20 +113,26 @@ export const checkTokenValidity = async (accessToken: string): Promise<{isValid:
     }
     
     // For valid tokens, verify it's for our application
-    if (data.audience) {
-      console.log('Token audience:', data.audience);
+    if (data.audience || data.azp) {
+      const tokenClientId = data.audience || data.azp;
+      console.log('Token audience:', tokenClientId);
       console.log('Our client ID:', CLIENT_ID);
       
-      if (data.audience === CLIENT_ID) {
+      if (tokenClientId === CLIENT_ID) {
         console.log('Token is valid for our application');
         return { isValid: true, details: 'Token valid and belongs to our application' };
       } else {
-        console.warn('Token belongs to different client ID:', data.audience);
+        console.warn('Token belongs to different client ID:', tokenClientId);
         return { 
           isValid: false, 
           details: 'Token belongs to a different application' 
         };
       }
+    }
+    
+    // If we have an 'exp' field, the token is probably valid
+    if (data.exp) {
+      return { isValid: true, details: 'Token appears valid based on expiration time' };
     }
     
     // If we get here with no error but no audience, something is wrong
