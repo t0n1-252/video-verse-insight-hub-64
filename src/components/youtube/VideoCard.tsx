@@ -1,17 +1,27 @@
 
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Video } from "@/lib/youtube-api";
 
 interface VideoCardProps {
   video: Video;
-  onClick: (video: Video) => void;
+  onClick?: (video: Video) => void;
 }
 
 const VideoCard = ({ video, onClick }: VideoCardProps) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick(video);
+    }
+    navigate(`/video/${video.id}`);
+  };
+
   return (
     <Card 
       className="bg-gray-800 border-gray-700 hover:border-blue-500 cursor-pointer transition-all"
-      onClick={() => onClick(video)}
+      onClick={handleClick}
     >
       <CardHeader className="pb-2">
         <div className="aspect-video bg-gray-700 mb-2 overflow-hidden">

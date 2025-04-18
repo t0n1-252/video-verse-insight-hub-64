@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,11 +15,13 @@ import { mapApiCommentsToUiComments } from "@/lib/youtube/comment-mapper";
 import { ThreeDotsFade } from "react-svg-spinners";
 
 interface VideoAnalysisProps {
-  video: Video;
+  video?: Video;
 }
 
-const VideoAnalysis = ({ video }: VideoAnalysisProps) => {
-  const [activeTab, setActiveTab] = useState("overview");
+const VideoAnalysis = ({ video: propVideo }: { video?: Video }) => {
+  const { videoId } = useParams();
+  const navigate = useNavigate();
+  const [video, setVideo] = useState<Video | null>(propVideo || null);
   const [apiComments, setApiComments] = useState<ApiComment[]>([]);
   const [comments, setComments] = useState<UiComment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,10 +30,12 @@ const VideoAnalysis = ({ video }: VideoAnalysisProps) => {
   const { accessToken } = useYouTubeAuth();
 
   useEffect(() => {
-    if (accessToken && video.id) {
-      loadComments();
+    if (propVideo) {
+      setVideo(propVideo);
+    } else if (videoId) {
+      console.log("Would fetch video details for:", videoId);
     }
-  }, [accessToken, video.id]);
+  }, [videoId, propVideo]);
 
   const loadComments = async () => {
     if (!accessToken) return;
@@ -41,15 +45,12 @@ const VideoAnalysis = ({ video }: VideoAnalysisProps) => {
       const commentsData = await fetchVideoComments(accessToken, video.id);
       setApiComments(commentsData);
       
-      // Convert API comments to UI comments format
       const uiComments = mapApiCommentsToUiComments(commentsData);
       setComments(uiComments);
       
-      // Calculate sentiment based on actual comments
       const sentimentData = analyzeSentiment(commentsData);
       setSentiment(sentimentData);
       
-      // Generate content opportunities
       const opportunitiesData = generateContentOpportunities(commentsData);
       setOpportunities(opportunitiesData);
     } catch (error) {
@@ -59,12 +60,19 @@ const VideoAnalysis = ({ video }: VideoAnalysisProps) => {
     }
   };
 
-  // Filter priority comments (questions or complaints)
+  if (!video) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <ThreeDotsFade color="#3b82f6" height={40} />
+        <p className="mt-4 text-gray-400">Loading video details...</p>
+      </div>
+    );
+  }
+
   const priorityComments = comments.filter(comment => comment.isPriority);
   const questions = comments.filter(comment => comment.isQuestion);
   const complaints = comments.filter(comment => comment.isComplaint);
 
-  // Get overall sentiment
   const getOverallSentiment = () => {
     if (sentiment.positive > 60) return "Mostly Positive";
     if (sentiment.negative > 40) return "Concerning";

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +9,7 @@ import Setup from "./pages/Setup";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import MainNavigationMenu from "./components/MainNavigationMenu";
+import VideoAnalysis from "./pages/VideoAnalysis";
 
 // Create the query client as a constant outside the component
 const queryClient = new QueryClient({
@@ -42,6 +42,7 @@ const App: React.FC = () => {
               <Route path="/" element={<Index />} />
               <Route path="/setup" element={<Setup />} />
               <Route path="/mock-dashboard" element={<Dashboard />} />
+              <Route path="/video/:videoId" element={<VideoAnalysis />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
