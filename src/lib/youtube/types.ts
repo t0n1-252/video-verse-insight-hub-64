@@ -10,7 +10,7 @@ export interface AuthState {
   } | null;
 }
 
-// Add global type declarations for the Google API client
+// Google API client global type declarations
 declare global {
   interface Window {
     [key: string]: any; // Allow dynamic callback functions
@@ -53,6 +53,12 @@ declare global {
             callback: (response: any) => void;
             error_callback?: (error: any) => void;
           }) => any;
+          requestAccessToken: (params: {
+            prompt?: string;
+            hint?: string;
+            state?: string;
+            enable_serial_consent?: boolean;
+          }) => void;
         };
       };
     };

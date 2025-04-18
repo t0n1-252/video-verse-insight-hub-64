@@ -1,3 +1,4 @@
+
 import { checkTokenValidity } from './config';
 
 // Function to fetch user profile data
@@ -28,13 +29,9 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
   try {
     console.log('Token validation passed, fetching user profile');
     
-    // Skip the GAPI attempt and go directly to the userinfo endpoint
-    // This is more reliable and avoids the communication errors
-    console.log('Fetching from userinfo endpoint');
-    
-    // Use Google's userinfo endpoint from OAuth2 v2 API
+    // Use Google's userinfo endpoint directly - no GAPI dependency
     const apiUrl = 'https://www.googleapis.com/oauth2/v2/userinfo';
-    console.log(`Fetching from: ${apiUrl}`);
+    console.log(`Fetching user profile from: ${apiUrl}`);
     
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -42,7 +39,6 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
         'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/json'
       },
-      // Disable cache to ensure fresh response
       cache: 'no-store'
     });
     
@@ -59,7 +55,6 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
         console.error('Could not read error response:', e);
       }
       
-      // Throw detailed error based on status code
       if (status === 401) {
         console.error('401 Unauthorized: Token has been rejected by Google API');
         throw new Error('Token rejected by Google: Please sign in again');
@@ -90,13 +85,6 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
     };
   } catch (error) {
     console.error('Profile fetch failed:', error);
-    
-    // If the error is already an Error object, just rethrow it
-    if (error instanceof Error) {
-      throw error;
-    }
-    
-    // Otherwise create a new Error with the message
-    throw new Error(`Failed to fetch user profile: ${error instanceof Error ? error.message : String(error)}`);
+    throw error instanceof Error ? error : new Error(String(error));
   }
 };

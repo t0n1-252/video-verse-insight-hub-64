@@ -41,7 +41,7 @@ export const areCredentialsConfigured = () => {
   return CLIENT_ID.trim() !== '' && CLIENT_SECRET.trim() !== '';
 };
 
-// Debug function to check token validity - Enhanced to handle different error scenarios
+// Debug function to check token validity - Enhanced to be more resilient
 export const checkTokenValidity = async (accessToken: string): Promise<{isValid: boolean, details?: string}> => {
   if (!accessToken) {
     return { isValid: false, details: 'No token provided' };
