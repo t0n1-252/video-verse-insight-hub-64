@@ -22,6 +22,13 @@ interface VideoOverviewTabProps {
 }
 
 const VideoOverviewTab = ({ video, sentiment, priorityComments, onViewAllComments }: VideoOverviewTabProps) => {
+  // Calculate counts for different comment categories
+  const questionsCount = priorityComments.filter(c => c.isQuestion).length;
+  const complaintsCount = priorityComments.filter(c => c.isComplaint).length;
+  const positivesCount = priorityComments.filter(c => c.sentiment === 'positive').length;
+  const neutralCount = priorityComments.filter(c => c.sentiment === 'neutral').length;
+  const totalComments = priorityComments.length;
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -42,9 +49,12 @@ const VideoOverviewTab = ({ video, sentiment, priorityComments, onViewAllComment
         </Card>
 
         <PriorityActions
-          questionsCount={2}
-          complaintsCount={2}
-          priorityCount={3}
+          questionsCount={questionsCount}
+          complaintsCount={complaintsCount}
+          priorityCount={priorityComments.length}
+          positivesCount={positivesCount}
+          neutralCount={neutralCount}
+          totalComments={totalComments}
         />
       </div>
 
