@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,80 +5,30 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 import VideoAnalysis from "@/pages/VideoAnalysis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useYouTubeAuth } from "@/lib/youtube-auth";
-import { fetchChannelVideos, Video } from "@/lib/youtube-api";
+import { Video } from "@/lib/youtube-api";
 import AuthRequired from "@/components/AuthRequired";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import SearchBar from "./youtube/SearchBar";
 import VideoGrid from "./youtube/VideoGrid";
 import VideoLoadingState from "./youtube/VideoLoadingState";
+import { useYoutubeVideos } from "@/hooks/use-youtube-videos";
 
 const DashboardWithYoutube = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const { accessToken, isSignedIn, error, user } = useYouTubeAuth();
   const { toast } = useToast();
   const currentDomain = window.location.origin;
   const [attemptedLoad, setAttemptedLoad] = useState(false);
 
-  useEffect(() => {
-    if (isSignedIn && accessToken && !attemptedLoad) {
-      setAttemptedLoad(true);
-      setTimeout(() => {
-        loadVideos();
-      }, 2000);
-    }
-  }, [isSignedIn, accessToken]);
-
-  const loadVideos = async () => {
-    if (!accessToken) {
-      setLoadError('Authentication token is missing. Please try signing in again.');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      setLoadError(null);
-      
-      const videoData = await fetchChannelVideos(accessToken);
-      
-      if (videoData && videoData.length > 0) {
-        setVideos(videoData);
-        toast({
-          title: "Videos loaded successfully",
-          description: `Found ${videoData.length} videos from your channel.`,
-          variant: "default"
-        });
-      } else {
-        setVideos([]);
-        toast({
-          title: "No videos found",
-          description: "No videos were found in your YouTube channel.",
-          variant: "default"
-        });
-      }
-    } catch (error: any) {
-      console.error("Error loading videos:", error);
-      setLoadError(`Failed to load videos: ${error.message || "Unknown error occurred"}`);
-      setVideos([]);
-      toast({
-        title: "Error loading videos",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRetry = () => {
-    setAttemptedLoad(true);
-    loadVideos();
-  };
+  const {
+    videos,
+    loading,
+    loadError,
+    loadVideos
+  } = useYoutubeVideos(isSignedIn ? accessToken : null);
 
   const filteredVideos = videos.filter(video => 
     video.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -127,7 +76,7 @@ const DashboardWithYoutube = () => {
                 <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
                 <div className="flex justify-end mt-4">
                   <Button 
-                    onClick={handleRetry} 
+                    onClick={loadVideos} 
                     className="flex items-center gap-2"
                     disabled={loading}
                   >
@@ -146,7 +95,7 @@ const DashboardWithYoutube = () => {
                     <AlertDescription>{loadError}</AlertDescription>
                   </Alert>
                   <div className="flex justify-center mt-4">
-                    <Button onClick={handleRetry} className="flex items-center gap-2">
+                    <Button onClick={loadVideos} className="flex items-center gap-2">
                       <RefreshCw className="h-4 w-4" />
                       Retry Loading Videos
                     </Button>
@@ -156,7 +105,7 @@ const DashboardWithYoutube = () => {
                 <VideoGrid 
                   videos={filteredVideos}
                   onVideoSelect={setSelectedVideo}
-                  onRetry={handleRetry}
+                  onRetry={loadVideos}
                 />
               )}
             </TabsContent>
