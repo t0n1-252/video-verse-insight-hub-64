@@ -15,7 +15,7 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
   const [tokenClient, setTokenClient] = useState<any>(null);
   const [profileFetchError, setProfileFetchError] = useState<string | null>(null);
   
-  const { toast } = useToast();
+  const toast = useToast();
   const authManager = new YouTubeAuthManager(toast);
 
   useEffect(() => {
@@ -122,7 +122,7 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
         }
       }
 
-      toast({
+      toast.toast({
         title: "Signed Out",
         description: "You've been successfully signed out of your YouTube account.",
         variant: "default",

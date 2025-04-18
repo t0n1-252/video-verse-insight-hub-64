@@ -7,7 +7,11 @@ import { AuthState } from '../types';
 import { useToast } from '@/hooks/use-toast';
 
 export class YouTubeAuthManager {
-  constructor(private toast: ReturnType<typeof useToast>) {}
+  private toastFunction: ReturnType<typeof useToast>['toast'];
+  
+  constructor(toastProvider: ReturnType<typeof useToast>) {
+    this.toastFunction = toastProvider.toast;
+  }
 
   async handleAuthSuccess(accessToken: string): Promise<AuthState> {
     console.log('Authentication successful, token received with length:', accessToken.length);
@@ -34,7 +38,7 @@ export class YouTubeAuthManager {
         
         saveSession(accessToken, user);
         
-        this.toast.toast({
+        this.toastFunction({
           title: "Successfully connected",
           description: `Welcome, ${user.name}! Your YouTube account is now connected.`,
           variant: "default",
