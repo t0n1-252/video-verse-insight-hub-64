@@ -43,7 +43,7 @@ const PriorityActions = ({
             <Progress 
               value={(priorityCount / totalComments) * 100} 
               className="h-1 bg-gray-700"
-              indicatorClassName="bg-purple-400"
+              style={{ "--progress-color": "rgb(192, 132, 252)" } as React.CSSProperties}
             />
           </div>
 
@@ -58,7 +58,7 @@ const PriorityActions = ({
             <Progress 
               value={(positivesCount / totalComments) * 100} 
               className="h-1 bg-gray-700"
-              indicatorClassName="bg-green-400"
+              style={{ "--progress-color": "rgb(74, 222, 128)" } as React.CSSProperties}
             />
           </div>
 
@@ -73,7 +73,7 @@ const PriorityActions = ({
             <Progress 
               value={(neutralCount / totalComments) * 100} 
               className="h-1 bg-gray-700"
-              indicatorClassName="bg-gray-400"
+              style={{ "--progress-color": "rgb(156, 163, 175)" } as React.CSSProperties}
             />
           </div>
 
@@ -88,7 +88,7 @@ const PriorityActions = ({
             <Progress 
               value={(questionsCount / totalComments) * 100} 
               className="h-1 bg-gray-700"
-              indicatorClassName="bg-blue-400"
+              style={{ "--progress-color": "rgb(96, 165, 250)" } as React.CSSProperties}
             />
           </div>
 
@@ -103,7 +103,7 @@ const PriorityActions = ({
             <Progress 
               value={(complaintsCount / totalComments) * 100} 
               className="h-1 bg-gray-700"
-              indicatorClassName="bg-amber-400"
+              style={{ "--progress-color": "rgb(251, 191, 36)" } as React.CSSProperties}
             />
           </div>
         </div>
