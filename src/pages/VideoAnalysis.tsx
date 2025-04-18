@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
-import { Calendar, Eye, MessageSquare } from "lucide-react";
+import { Calendar, Eye, MessageSquare, Flag, ThumbsUp, Activity, HelpCircle, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreeDotsFade } from "react-svg-spinners";
 import CommentList, { Comment as UiComment } from "@/components/CommentList";
@@ -65,6 +64,9 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
   }
 
   const priorityComments = comments.filter(comment => comment.isPriority);
+  const hotLeads = comments.filter(comment => comment.isPriority && comment.isQuestion);
+  const mostLiked = [...comments].sort((a, b) => b.likes - a.likes).slice(0, 10);
+  const mostEngaged = [...comments].sort((a, b) => (b.replies?.length || 0) - (a.replies?.length || 0)).slice(0, 10);
   const questions = comments.filter(comment => comment.isQuestion);
   const complaints = comments.filter(comment => comment.isComplaint);
 
@@ -91,41 +93,65 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      {/* Overview Section */}
+      <VideoOverviewTab 
+        video={{
+          publishDate: video.publishDate,
+          views: video.viewCount,
+          commentCount: video.commentCount
+        }}
+        sentiment={sentiment}
+        priorityComments={priorityComments}
+        onViewAllComments={() => {}}
+      />
+
+      {/* Comments Tabs Section */}
+      <Tabs defaultValue="priority" className="space-y-6">
         <TabsList className="bg-gray-800 border-gray-700">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-gray-700">Overview</TabsTrigger>
-          <TabsTrigger value="comments" className="data-[state=active]:bg-gray-700">
-            All Comments
-            <Badge variant="secondary" className="ml-2 bg-gray-700">{comments.length}</Badge>
+          <TabsTrigger value="priority" className="data-[state=active]:bg-gray-700">
+            <Flag className="w-4 h-4 mr-2" />
+            Priority Comments
+            <Badge variant="secondary" className="ml-2 bg-purple-500/20 text-purple-400">{priorityComments.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="hot-leads" className="data-[state=active]:bg-gray-700">
+            <Activity className="w-4 h-4 mr-2" />
+            Hot Leads
+            <Badge variant="secondary" className="ml-2 bg-green-500/20 text-green-400">{hotLeads.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="most-liked" className="data-[state=active]:bg-gray-700">
+            <ThumbsUp className="w-4 h-4 mr-2" />
+            Most Liked
+          </TabsTrigger>
+          <TabsTrigger value="most-engaged" className="data-[state=active]:bg-gray-700">
+            <Activity className="w-4 h-4 mr-2" />
+            Most Engagement
           </TabsTrigger>
           <TabsTrigger value="questions" className="data-[state=active]:bg-gray-700">
+            <HelpCircle className="w-4 h-4 mr-2" />
             Questions
             <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-400">{questions.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="complaints" className="data-[state=active]:bg-gray-700">
+            <AlertCircle className="w-4 h-4 mr-2" />
             Complaints
             <Badge variant="secondary" className="ml-2 bg-amber-500/20 text-amber-400">{complaints.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="opportunities" className="data-[state=active]:bg-gray-700">
-            Content Opportunities
-          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-6">
-          <VideoOverviewTab 
-            video={{
-              publishDate: video.publishDate,
-              views: video.viewCount,
-              commentCount: video.commentCount
-            }}
-            sentiment={sentiment}
-            priorityComments={priorityComments}
-            onViewAllComments={() => setActiveTab("comments")}
-          />
+        <TabsContent value="priority">
+          <CommentList comments={priorityComments} />
         </TabsContent>
 
-        <TabsContent value="comments">
-          <CommentList comments={comments} />
+        <TabsContent value="hot-leads">
+          <CommentList comments={hotLeads} />
+        </TabsContent>
+
+        <TabsContent value="most-liked">
+          <CommentList comments={mostLiked} />
+        </TabsContent>
+
+        <TabsContent value="most-engaged">
+          <CommentList comments={mostEngaged} />
         </TabsContent>
 
         <TabsContent value="questions">
@@ -134,10 +160,6 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
 
         <TabsContent value="complaints">
           <CommentList comments={complaints} />
-        </TabsContent>
-
-        <TabsContent value="opportunities">
-          <ContentOpportunities opportunities={opportunities} />
         </TabsContent>
       </Tabs>
     </div>
