@@ -115,15 +115,17 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
           <TabsTrigger value="hot-leads" className="data-[state=active]:bg-gray-700">
             <Flame className="w-4 h-4 mr-2" />
             Hot Leads
-            <Badge variant="secondary" className="ml-2 bg-green-500/20 text-green-400">{hotLeads.length}</Badge>
+            <Badge variant="secondary" className="ml-2 bg-red-500/20 text-red-400">{hotLeads.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="most-liked" className="data-[state=active]:bg-gray-700">
             <ThumbsUp className="w-4 h-4 mr-2" />
             Most Liked
+            <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-400">{mostLiked.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="most-engaged" className="data-[state=active]:bg-gray-700">
             <Activity className="w-4 h-4 mr-2" />
             Most Engagement
+            <Badge variant="secondary" className="ml-2 bg-amber-500/20 text-amber-400">{mostEngaged.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="questions" className="data-[state=active]:bg-gray-700">
             <HelpCircle className="w-4 h-4 mr-2" />
