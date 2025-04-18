@@ -4,10 +4,10 @@
 export const API_KEY = '';
 
 // Client ID from Google Cloud Console
-export const CLIENT_ID = '347250450941-ju2kek1sa12qiv06653as6sv42crts6q.apps.googleusercontent.com';
+export const CLIENT_ID = '243997867776-i32hk67546ieolvmcng19ijgsesbve3d.apps.googleusercontent.com';
 
 // Client Secret from Google Cloud Console
-export const CLIENT_SECRET = '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';
+export const CLIENT_SECRET = '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';
 
 // Scopes needed for the application
 export const SCOPES = [
