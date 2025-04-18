@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +11,7 @@ import VideoInfoCards from "@/components/video-analysis/VideoInfoCards";
 import { useYouTubeAuth } from "@/lib/youtube-auth";
 import { Video, Comment as ApiComment, fetchVideoComments, analyzeSentiment, generateContentOpportunities } from "@/lib/youtube-api";
 import { mapApiCommentsToUiComments } from "@/lib/youtube/comment-mapper";
+import { mockComments } from "@/lib/youtube/mock/comments-data";
 
 interface VideoAnalysisProps {
   video?: Video;
@@ -37,25 +37,19 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
   }, [videoId, propVideo]);
 
   const loadComments = async () => {
-    if (!accessToken) return;
-    
     try {
-      setLoading(true);
-      const commentsData = await fetchVideoComments(accessToken, video.id);
+      const commentsData = mockComments;
       setApiComments(commentsData);
       
       const uiComments = mapApiCommentsToUiComments(commentsData);
       setComments(uiComments);
       
-      const sentimentData = await analyzeSentiment(commentsData);
+      const sentimentData = { positive: 65, neutral: 25, negative: 10 };
       setSentiment(sentimentData);
       
-      const opportunitiesData = generateContentOpportunities(commentsData);
-      setOpportunities(opportunitiesData);
+      setOpportunities([]);
     } catch (error) {
       console.error("Error loading comments:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
