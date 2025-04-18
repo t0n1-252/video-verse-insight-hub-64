@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import VideoAnalysis from "./VideoAnalysis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Logo from "@/components/Logo";
 
 // Mock data for demonstration
 const MOCK_VIDEOS = [
@@ -64,9 +64,8 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">
-        <span className="text-purple-500">Video</span>
-        <span className="text-blue-400">Verse</span> Demo Dashboard
+      <h1 className="text-3xl font-bold mb-8 flex items-center justify-center">
+        <Logo />
       </h1>
 
       <Tabs defaultValue="dashboard">
