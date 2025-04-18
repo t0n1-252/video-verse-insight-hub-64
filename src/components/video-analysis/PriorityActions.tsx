@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flag, MessageCircle, AlertCircle, ThumbsUp, HelpCircle, CircleDot, Flame, Activity } from "lucide-react";
+import { Flag, ThumbsUp, HelpCircle, AlertCircle, CircleDot, Flame, Activity } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface PriorityActionsProps {
@@ -50,15 +50,45 @@ const PriorityActions = ({
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ThumbsUp className="text-green-400" size={16} />
-                <span className="text-gray-200 text-sm">Testimonials</span>
+                <Flame className="text-red-400" size={16} />
+                <span className="text-gray-200 text-sm">Hot Leads</span>
               </div>
-              <span className="text-green-400 text-sm">{positivesCount}</span>
+              <span className="text-red-400 text-sm">{priorityCount}</span>
+            </div>
+            <Progress 
+              value={(priorityCount / totalComments) * 100} 
+              className="h-1 bg-gray-700"
+              style={{ "--progress-color": "rgb(248, 113, 113)" } as React.CSSProperties}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ThumbsUp className="text-blue-400" size={16} />
+                <span className="text-gray-200 text-sm">Most Liked</span>
+              </div>
+              <span className="text-blue-400 text-sm">{positivesCount}</span>
             </div>
             <Progress 
               value={(positivesCount / totalComments) * 100} 
               className="h-1 bg-gray-700"
-              style={{ "--progress-color": "rgb(74, 222, 128)" } as React.CSSProperties}
+              style={{ "--progress-color": "rgb(96, 165, 250)" } as React.CSSProperties}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="text-amber-400" size={16} />
+                <span className="text-gray-200 text-sm">Most Engagement</span>
+              </div>
+              <span className="text-amber-400 text-sm">{positivesCount}</span>
+            </div>
+            <Progress 
+              value={(positivesCount / totalComments) * 100} 
+              className="h-1 bg-gray-700"
+              style={{ "--progress-color": "rgb(251, 191, 36)" } as React.CSSProperties}
             />
           </div>
 
@@ -74,6 +104,21 @@ const PriorityActions = ({
               value={(questionsCount / totalComments) * 100} 
               className="h-1 bg-gray-700"
               style={{ "--progress-color": "rgb(96, 165, 250)" } as React.CSSProperties}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ThumbsUp className="text-green-400" size={16} />
+                <span className="text-gray-200 text-sm">Testimonials</span>
+              </div>
+              <span className="text-green-400 text-sm">{positivesCount}</span>
+            </div>
+            <Progress 
+              value={(positivesCount / totalComments) * 100} 
+              className="h-1 bg-gray-700"
+              style={{ "--progress-color": "rgb(74, 222, 128)" } as React.CSSProperties}
             />
           </div>
 
