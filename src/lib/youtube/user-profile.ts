@@ -39,16 +39,10 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
         // Load the people API if needed
         if (!window.gapi.client.people) {
           await new Promise<void>((resolve, reject) => {
-            window.gapi.client.load('https://people.googleapis.com/$discovery/rest?version=v1', 
-              (err: any) => {
-                if (err) {
-                  console.error('Error loading people API:', err);
-                  reject(err);
-                } else {
-                  console.log('People API loaded');
-                  resolve();
-                }
-              });
+            window.gapi.client.load('people', 'v1', function() {
+              console.log('People API loaded');
+              resolve();
+            });
           });
         }
         
