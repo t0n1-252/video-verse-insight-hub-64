@@ -6,6 +6,7 @@ import CredentialsError from './youtube/CredentialsError';
 import AuthError from './youtube/AuthError';
 import UserProfile from './youtube/UserProfile';
 import SignInForm from './youtube/SignInForm';
+import { clearSession } from '@/lib/youtube/auth/session';
 
 interface YoutubeLoginProps {
   onLoginSuccess?: () => void;
@@ -37,7 +38,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     if (profileFetchError && !authError) {
       setAuthError(profileFetchError);
     }
-  }, [profileFetchError]);
+  }, [profileFetchError, authError]);
 
   const handleAuth = async () => {
     if (isSignedIn) {
@@ -52,6 +53,10 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
         console.log("Attempting to sign in");
         setAuthError(null);
         setSigningIn(true);
+        
+        // Ensure we have a clean state before signing in
+        clearSession();
+        
         await signIn();
         console.log("Sign in process initiated successfully");
       } catch (error) {
@@ -82,18 +87,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     console.log("Performing thorough reset of authentication state");
     
     // Clear all possible auth-related storage
-    localStorage.removeItem('youtube_access_token');
-    localStorage.removeItem('youtube_user');
-    localStorage.removeItem('youtube_email');
-    sessionStorage.removeItem('youtube_token_timestamp');
-    
-    // Clear any Google cookies that might be causing issues
-    document.cookie.split(';').forEach(c => {
-      const cookieName = c.split('=')[0].trim();
-      if (cookieName.startsWith('g_') || cookieName.includes('google')) {
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-      }
-    });
+    clearSession();
     
     // Remove script tags to force fresh loading
     const scriptTags = document.querySelectorAll('script[id^="google-"]');
