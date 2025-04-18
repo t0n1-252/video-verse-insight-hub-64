@@ -5,6 +5,7 @@ import SentimentChart from "@/components/SentimentChart";
 import CommentList from "@/components/CommentList";
 import { Comment as UiComment } from "@/components/CommentList";
 import VideoInfo from "./VideoInfo";
+import PriorityActions from "./PriorityActions";
 
 interface VideoOverviewTabProps {
   video: {
@@ -31,17 +32,14 @@ const VideoOverviewTab = ({ video, sentiment, priorityComments, onViewAllComment
           comments={video.commentCount}
         />
         
-        <Card className="md:col-span-2 bg-gray-800/50 border-gray-700">
+        <Card className="md:col-span-1 bg-gray-800/50 border-gray-700">
           <CardHeader>
             <CardTitle className="text-lg">Sentiment Analysis</CardTitle>
             <CardDescription className="text-gray-400">
-              Visual representation of comment sentiment
+              Overall sentiment breakdown
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold">Mostly Positive</h3>
-            </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-green-400">Positive</span>
@@ -78,37 +76,34 @@ const VideoOverviewTab = ({ video, sentiment, priorityComments, onViewAllComment
             </div>
           </CardContent>
         </Card>
+
+        <PriorityActions
+          questionsCount={2}
+          complaintsCount={2}
+          priorityCount={3}
+        />
       </div>
 
       <Card className="bg-gray-800/50 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-lg">Sentiment Breakdown</CardTitle>
+          <CardTitle className="text-lg">Priority Comments</CardTitle>
           <CardDescription className="text-gray-400">
-            Visual representation of comment sentiment
+            Comments that need your attention
           </CardDescription>
         </CardHeader>
-        <CardContent className="h-80">
-          <SentimentChart 
-            positive={sentiment.positive} 
-            neutral={sentiment.neutral} 
-            negative={sentiment.negative} 
-          />
+        <CardContent className="space-y-4">
+          <CommentList comments={priorityComments} />
+          <div className="text-center pt-4">
+            <Button 
+              variant="outline"
+              onClick={onViewAllComments}
+              className="w-full md:w-auto"
+            >
+              View All Comments
+            </Button>
+          </div>
         </CardContent>
       </Card>
-
-      <div className="space-y-6">
-        <h3 className="text-xl font-semibold">Priority Comments</h3>
-        <CommentList comments={priorityComments} />
-        
-        <div className="text-center pt-4">
-          <Button 
-            variant="outline"
-            onClick={onViewAllComments}
-          >
-            View All Comments
-          </Button>
-        </div>
-      </div>
     </div>
   );
 };
