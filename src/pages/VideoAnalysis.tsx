@@ -47,7 +47,7 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
       const uiComments = mapApiCommentsToUiComments(commentsData);
       setComments(uiComments);
       
-      const sentimentData = analyzeSentiment(commentsData);
+      const sentimentData = await analyzeSentiment(commentsData);
       setSentiment(sentimentData);
       
       const opportunitiesData = generateContentOpportunities(commentsData);
