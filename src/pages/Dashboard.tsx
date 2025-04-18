@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -54,6 +55,7 @@ const MOCK_VIDEOS = [
 const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const navigate = useNavigate();
   
   const filteredVideos = MOCK_VIDEOS.filter(video => 
     video.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -61,6 +63,7 @@ const Dashboard = () => {
 
   const handleVideoSelect = (video: any) => {
     setSelectedVideo(video);
+    navigate(`/video/${video.id}`);
   };
 
   return (
