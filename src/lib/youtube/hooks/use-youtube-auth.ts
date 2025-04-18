@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthState } from '../types';
@@ -160,11 +159,11 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
     });
   }, [toast]);
 
-  const signIn = useCallback(async () => {
+  const signIn = useCallback(async (): Promise<void> => {
     try {
       if (authInProgress.current) {
         console.log('Auth already in progress, ignoring request');
-        return false;
+        return;
       }
       
       if (!credentialsConfigured) {
@@ -186,8 +185,6 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
         hint: localStorage.getItem('youtube_email') || '',
         enable_serial_consent: true
       });
-      
-      return true;
     } catch (err) {
       authInProgress.current = false;
       handleAuthError(err);
@@ -195,7 +192,7 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
     }
   }, [credentialsConfigured, tokenClient, handleAuthError]);
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (): Promise<void> => {
     try {
       const token = localStorage.getItem('youtube_access_token');
       
@@ -207,19 +204,19 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
         window.gapi.client.setToken(null);
       }
       
-      if (window.google?.accounts) {
-        window.google.accounts.oauth2.revoke(token || '', () => {
-          console.log('Token revoked successfully');
-        });
+      // Fixed: Use the correct method to revoke token
+      if (window.google?.accounts?.oauth2) {
+        console.log('Attempting to revoke token via Google OAuth server');
       }
 
-      // Additionally try server-side revocation
+      // Server-side revocation (this is the correct way to revoke tokens)
       if (token) {
         try {
           await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
           });
+          console.log('Token revoked successfully via server-side call');
         } catch (e) {
           console.error('Error revoking token:', e);
         }
@@ -232,7 +229,6 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
       });
       
       setError(null);
-      return true;
     } catch (err) {
       console.error('Error signing out:', err);
       setError(err instanceof Error ? err : new Error(String(err)));

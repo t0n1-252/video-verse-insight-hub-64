@@ -6,7 +6,7 @@ export interface YouTubeAuthHookResult extends AuthState {
   error: Error | null;
   credentialsConfigured: boolean;
   profileFetchError: string | null;
-  signIn: () => Promise<boolean>;
+  signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
