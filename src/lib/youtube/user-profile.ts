@@ -28,51 +28,8 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
   try {
     console.log('Token validation passed, fetching user profile');
     
-    // Try to get email and profile from Google's people API first (most reliable)
-    try {
-      if (window.gapi && window.gapi.client) {
-        console.log('Using GAPI to fetch profile info');
-        
-        // Make sure our token is set
-        window.gapi.client.setToken({ access_token: accessToken });
-        
-        // Load the people API if needed
-        if (!window.gapi.client.people) {
-          await new Promise<void>((resolve, reject) => {
-            window.gapi.client.load('people', 'v1', function() {
-              console.log('People API loaded');
-              resolve();
-            });
-          });
-        }
-        
-        // If people API is available, use it
-        if (window.gapi.client.people) {
-          console.log('People API available, trying to fetch profile');
-          const peopleResponse = await window.gapi.client.people.people.get({
-            resourceName: 'people/me',
-            personFields: 'names,emailAddresses,photos'
-          });
-          
-          console.log('People API response:', peopleResponse);
-          
-          if (peopleResponse.result) {
-            const person = peopleResponse.result;
-            
-            return {
-              id: person.resourceName ? person.resourceName.replace('people/', '') : undefined,
-              name: person.names && person.names[0] ? person.names[0].displayName : 'YouTube User',
-              email: person.emailAddresses && person.emailAddresses[0] ? person.emailAddresses[0].value : '',
-              picture: person.photos && person.photos[0] ? person.photos[0].url : ''
-            };
-          }
-        }
-      }
-    } catch (peopleError) {
-      console.error('Error using People API, falling back to userinfo endpoint:', peopleError);
-    }
-    
-    // Fall back to userinfo endpoint
+    // Skip the GAPI attempt and go directly to the userinfo endpoint
+    // This is more reliable and avoids the communication errors
     console.log('Fetching from userinfo endpoint');
     
     // Use Google's userinfo endpoint from OAuth2 v2 API
