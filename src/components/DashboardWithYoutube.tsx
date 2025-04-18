@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -92,7 +93,7 @@ const DashboardWithYoutube = () => {
                 <div>
                   <Alert variant="destructive" className="mb-6">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{loadError}</AlertDescription>
+                    <AlertDescription>{loadError.message}</AlertDescription>
                   </Alert>
                   <div className="flex justify-center mt-4">
                     <Button onClick={loadVideos} className="flex items-center gap-2">
