@@ -30,7 +30,8 @@ const AuthRequired: React.FC<AuthRequiredProps> = ({ children }) => {
   // Debug logging for initialization state
   useEffect(() => {
     console.log("AuthRequired: isInitializing =", isInitializing);
-  }, [isInitializing]);
+    console.log("AuthRequired: credentialsConfigured =", credentialsConfigured);
+  }, [isInitializing, credentialsConfigured]);
 
   if (isInitializing) {
     return (

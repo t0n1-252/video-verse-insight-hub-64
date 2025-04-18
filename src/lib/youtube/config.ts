@@ -7,6 +7,9 @@ export const API_KEY = '';
 // Client ID from Google Cloud Console
 export const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.googleusercontent.com';
 
+// Client Secret from Google Cloud Console
+export const CLIENT_SECRET = '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';
+
 // Use the full origin (domain) as the redirect URI without the path
 // This is simpler and more reliable for OAuth flows
 export const REDIRECT_URI = window.location.origin;
@@ -34,7 +37,7 @@ export const initialAuthState = {
 
 // Check if credentials are configured
 export const areCredentialsConfigured = () => {
-  return CLIENT_ID.trim() !== '';
+  return CLIENT_ID.trim() !== '' && CLIENT_SECRET.trim() !== '';
 };
 
 // Debug function to check token validity - Enhanced to handle different error scenarios

@@ -1,3 +1,4 @@
+
 import { useYouTubeAuth } from '@/lib/youtube-auth';
 import { Button } from '@/components/ui/button';
 import { ThreeDotsFade } from 'react-svg-spinners';
@@ -5,7 +6,7 @@ import { Youtube, AlertCircle, RefreshCw, Info } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CLIENT_ID, REDIRECT_URI } from '@/lib/youtube/config';
+import { CLIENT_ID, CLIENT_SECRET, REDIRECT_URI } from '@/lib/youtube/config';
 
 interface YoutubeLoginProps {
   onLoginSuccess?: () => void;
