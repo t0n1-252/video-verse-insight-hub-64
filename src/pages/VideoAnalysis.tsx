@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +96,8 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
           </TabsTrigger>
           <TabsTrigger value="opportunities" className="data-[state=active]:bg-gray-700">
             Content Opportunities
-          </TabsList>
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent value="overview" className="mt-6">
           <VideoOverviewTab 
