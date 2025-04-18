@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
-import { Flag, Eye, MessageSquare, AlertCircle, ThumbsUp, Activity, HelpCircle, CircleDot, Flame } from "lucide-react";
+import { ArrowLeft, Calendar, Eye, MessageSquare, Flag, ThumbsUp, Activity, HelpCircle, AlertCircle, Flame, CircleDot } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreeDotsFade } from "react-svg-spinners";
 import CommentList, { Comment as UiComment } from "@/components/CommentList";
