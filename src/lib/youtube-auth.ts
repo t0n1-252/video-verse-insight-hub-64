@@ -1,8 +1,10 @@
+
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthState } from './youtube/types';
 import { loadGapiClient, loadGisClient } from './youtube/api-loaders';
 import { fetchUserProfile } from './youtube/user-profile';
+import { storeYouTubeUser } from './youtube/user-storage';
 import { 
   CLIENT_ID, 
   REDIRECT_URI, 
