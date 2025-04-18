@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +67,8 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
   const priorityComments = comments.filter(comment => comment.isPriority);
   const hotLeads = comments.filter(comment => comment.isPriority && comment.isQuestion);
   const mostLiked = [...comments].sort((a, b) => b.likes - a.likes).slice(0, 10);
-  const mostEngaged = [...comments].sort((a, b) => (b.replies?.length || 0) - (a.replies?.length || 0)).slice(0, 10);
+  // Fix: Use a property that exists on our Comment type for sorting engagement
+  const mostEngaged = [...comments].sort((a, b) => b.likes - a.likes).slice(0, 10);
   const questions = comments.filter(comment => comment.isQuestion);
   const complaints = comments.filter(comment => comment.isComplaint);
 

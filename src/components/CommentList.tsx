@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +17,7 @@ export interface Comment {
   isQuestion: boolean;
   isComplaint: boolean;
   isPriority: boolean;
+  replies?: Comment[]; // Adding replies property to support engagement sorting
 }
 
 interface CommentListProps {
