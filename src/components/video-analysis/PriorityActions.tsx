@@ -36,7 +36,7 @@ const PriorityActions = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Flag className="text-purple-400" size={16} />
-                <span className="text-gray-200 text-sm">Priority</span>
+                <span className="text-gray-200 text-sm">Priority Comments</span>
               </div>
               <span className="text-purple-400 text-sm">{priorityCount}</span>
             </div>
@@ -51,7 +51,7 @@ const PriorityActions = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ThumbsUp className="text-green-400" size={16} />
-                <span className="text-gray-200 text-sm">Positive</span>
+                <span className="text-gray-200 text-sm">Testimonials</span>
               </div>
               <span className="text-green-400 text-sm">{positivesCount}</span>
             </div>
@@ -59,21 +59,6 @@ const PriorityActions = ({
               value={(positivesCount / totalComments) * 100} 
               className="h-1 bg-gray-700"
               style={{ "--progress-color": "rgb(74, 222, 128)" } as React.CSSProperties}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CircleDot className="text-gray-400" size={16} />
-                <span className="text-gray-200 text-sm">Neutral</span>
-              </div>
-              <span className="text-gray-400 text-sm">{neutralCount}</span>
-            </div>
-            <Progress 
-              value={(neutralCount / totalComments) * 100} 
-              className="h-1 bg-gray-700"
-              style={{ "--progress-color": "rgb(156, 163, 175)" } as React.CSSProperties}
             />
           </div>
 
@@ -104,6 +89,21 @@ const PriorityActions = ({
               value={(complaintsCount / totalComments) * 100} 
               className="h-1 bg-gray-700"
               style={{ "--progress-color": "rgb(251, 191, 36)" } as React.CSSProperties}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CircleDot className="text-gray-400" size={16} />
+                <span className="text-gray-200 text-sm">Neutral</span>
+              </div>
+              <span className="text-gray-400 text-sm">{neutralCount}</span>
+            </div>
+            <Progress 
+              value={(neutralCount / totalComments) * 100} 
+              className="h-1 bg-gray-700"
+              style={{ "--progress-color": "rgb(156, 163, 175)" } as React.CSSProperties}
             />
           </div>
         </div>
