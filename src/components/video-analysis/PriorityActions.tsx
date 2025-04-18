@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flag, MessageCircle, AlertCircle, ThumbsUp, HelpCircle, CircleDot } from "lucide-react";
+import { Flag, MessageCircle, AlertCircle, ThumbsUp, HelpCircle, CircleDot, Flame, Activity } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface PriorityActionsProps {
