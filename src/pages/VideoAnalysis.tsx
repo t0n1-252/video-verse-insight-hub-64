@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
+import { Calendar, Eye, MessageSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreeDotsFade } from "react-svg-spinners";
 import CommentList, { Comment as UiComment } from "@/components/CommentList";
@@ -68,9 +70,25 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center mb-6">
-        <ArrowLeft className="mr-2 cursor-pointer text-gray-400 hover:text-gray-200" onClick={() => window.history.back()} />
-        <h2 className="text-2xl font-bold text-gray-100">{video.title}</h2>
+      <div className="space-y-2">
+        <div className="flex items-center">
+          <ArrowLeft className="mr-2 cursor-pointer text-gray-400 hover:text-gray-200" onClick={() => window.history.back()} />
+          <h2 className="text-2xl font-bold text-gray-100">{video.title}</h2>
+        </div>
+        <div className="flex items-center gap-4 text-sm text-gray-400 ml-8">
+          <div className="flex items-center gap-1">
+            <Calendar size={16} />
+            <span>{new Date(video.publishDate).toLocaleDateString()}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Eye size={16} />
+            <span>{video.viewCount.toLocaleString()} views</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <MessageSquare size={16} />
+            <span>{video.commentCount.toLocaleString()} comments</span>
+          </div>
+        </div>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
