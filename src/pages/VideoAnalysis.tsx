@@ -101,7 +101,11 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
 
         <TabsContent value="overview" className="mt-6">
           <VideoOverviewTab 
-            video={video}
+            video={{
+              publishDate: video.publishDate,
+              views: video.viewCount,
+              commentCount: video.commentCount
+            }}
             sentiment={sentiment}
             priorityComments={priorityComments}
             onViewAllComments={() => setActiveTab("comments")}
