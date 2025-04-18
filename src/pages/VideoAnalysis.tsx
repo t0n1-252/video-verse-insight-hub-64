@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
-import { Calendar, Eye, MessageSquare, Flag, ThumbsUp, Activity, HelpCircle, AlertCircle, Flame } from "lucide-react";
+import { Calendar, Eye, MessageSquare, Flag, ThumbsUp, Activity, HelpCircle, AlertCircle, Flame, CircleDot } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreeDotsFade } from "react-svg-spinners";
 import CommentList, { Comment as UiComment } from "@/components/CommentList";
@@ -15,7 +14,6 @@ import { Video, Comment as ApiComment, fetchVideoComments, analyzeSentiment, gen
 import { mapApiCommentsToUiComments } from "@/lib/youtube/comment-mapper";
 import { mockComments } from "@/lib/youtube/mock/comments-data";
 
-// Mock data for demonstration
 const MOCK_VIDEOS = [
   {
     id: "video1",
@@ -76,17 +74,14 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
   const { accessToken } = useYouTubeAuth();
 
   useEffect(() => {
-    // Simulate loading data (short timeout to improve UX)
     setTimeout(() => {
       if (propVideo) {
         setVideo(propVideo);
         setLoading(false);
       } else if (videoId) {
-        // Find the mock video with the matching ID
         const foundVideo = MOCK_VIDEOS.find(v => v.id === videoId);
         if (foundVideo) {
           setVideo(foundVideo as Video);
-          // Load mock comments
           const uiComments = mapApiCommentsToUiComments(mockComments);
           setComments(uiComments);
           setLoading(false);
@@ -133,6 +128,7 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
   const questions = comments.filter(comment => comment.isQuestion);
   const testimonials = comments.filter(comment => !comment.isComplaint && !comment.isQuestion && comment.sentiment === 'positive');
   const complaints = comments.filter(comment => comment.isComplaint);
+  const neutral = comments.filter(comment => comment.sentiment === 'neutral');
 
   return (
     <div className="space-y-6">
@@ -205,6 +201,11 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
             Complaints
             <Badge variant="secondary" className="ml-2 bg-amber-500/20 text-amber-400">{complaints.length}</Badge>
           </TabsTrigger>
+          <TabsTrigger value="neutral" className="data-[state=active]:bg-gray-700">
+            <CircleDot className="w-4 h-4 mr-2" />
+            Neutral
+            <Badge variant="secondary" className="ml-2 bg-gray-500/20 text-gray-400">{neutral.length}</Badge>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="priority">
@@ -233,6 +234,10 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
 
         <TabsContent value="complaints">
           <CommentList comments={complaints} />
+        </TabsContent>
+
+        <TabsContent value="neutral">
+          <CommentList comments={neutral} />
         </TabsContent>
       </Tabs>
     </div>
