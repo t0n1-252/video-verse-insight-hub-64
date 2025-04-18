@@ -15,6 +15,10 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
   
   // Format the error message to be more user-friendly
   const getUserFriendlyError = (error: string) => {
+    if (error.includes('Token rejected')) {
+      return "Your authentication token was rejected. This usually happens when a token expires or when there are permission issues.";
+    }
+    
     if (error.includes('Token client not initialized')) {
       return "Authentication service not ready. This might be due to a browser extension blocking Google services or a temporary connectivity issue.";
     }
@@ -33,6 +37,30 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
     
     return error;
   };
+  
+  // Check if error is related to token
+  const isTokenError = error.toLowerCase().includes('token');
+  
+  // Provide specific fixes based on error type
+  const getSuggestedFixes = () => {
+    if (isTokenError) {
+      return [
+        "Clear your browser cookies for this site",
+        "Try using an incognito/private browsing window",
+        "Ensure you have the correct permissions in your Google account",
+        "Check that your Google Cloud Console project has YouTube API enabled",
+        "Verify that your OAuth consent screen is properly configured"
+      ];
+    }
+    
+    return [
+      "Check if you have any browser extensions that might be blocking Google services",
+      "Try using a different browser",
+      "Ensure you're allowing popups for this site",
+      "Make sure you're connected to the internet",
+      "Verify your Google Cloud Console settings"
+    ];
+  };
 
   return (
     <div className="flex flex-col items-center justify-center p-10 space-y-6">
@@ -44,15 +72,16 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
       
       <div className="text-center space-y-4">
         <AlertCircle size={40} className="mx-auto text-red-500" />
-        <h2 className="text-xl font-bold text-gray-100">Authentication Problem</h2>
+        <h2 className="text-xl font-bold text-gray-100">YouTube Authentication Failed</h2>
         <p className="text-gray-400 max-w-md">
-          We encountered an issue with the YouTube authentication. Here are some things you can try:
+          {isTokenError 
+            ? "There was a problem with your YouTube authentication token. Let's fix it!"
+            : "We encountered an issue connecting to your YouTube account. Here are some things you can try:"}
         </p>
         <ul className="text-left text-gray-400 max-w-md list-disc pl-5 space-y-2">
-          <li>Check if you have any browser extensions that might be blocking Google services</li>
-          <li>Try using a different browser</li>
-          <li>Ensure you're allowing popups for this site</li>
-          <li>Make sure you're connected to the internet</li>
+          {getSuggestedFixes().map((fix, idx) => (
+            <li key={idx}>{fix}</li>
+          ))}
         </ul>
         
         <div className="text-sm text-gray-500 mt-4 p-2 bg-gray-800 rounded-md">
@@ -72,6 +101,8 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
           {showDebugInfo && (
             <div className="mt-2 p-2 bg-gray-900 rounded text-xs">
               <p className="font-mono break-all">{error}</p>
+              <p className="mt-2">Browser: {navigator.userAgent}</p>
+              <p>Timestamp: {new Date().toISOString()}</p>
             </div>
           )}
         </div>

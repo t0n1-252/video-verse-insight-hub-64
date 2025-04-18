@@ -17,65 +17,85 @@ export class YouTubeAuthManager {
     console.log('Authentication successful, token received with length:', accessToken.length);
     
     try {
+      // First, validate the token
       const tokenStatus = await checkTokenValidity(accessToken);
       if (!tokenStatus.isValid) {
         throw new Error(`Invalid token: ${tokenStatus.details}`);
       }
       
+      // Then fetch the user profile
       let user = await this.fetchUserWithRetry(accessToken);
-      if (user) {
-        try {
-          await storeYouTubeUser({
-            youtube_user_id: user.id || `youtube_${Date.now()}`,
-            name: user.name,
-            email: user.email,
-            picture: user.picture,
-            access_token: accessToken
-          });
-        } catch (storeError) {
-          console.error("Error storing user in Supabase:", storeError);
-        }
-        
-        saveSession(accessToken, user);
-        
-        this.toastFunction({
-          title: "Successfully connected",
-          description: `Welcome, ${user.name}! Your YouTube account is now connected.`,
-          variant: "default",
-        });
-        
-        return {
-          isSignedIn: true,
-          accessToken,
-          user
-        };
+      if (!user) {
+        throw new Error('Failed to fetch user profile');
       }
-      throw new Error('Failed to fetch user profile after successful validation');
+      
+      // Store the authenticated user
+      try {
+        await storeYouTubeUser({
+          youtube_user_id: user.id || `youtube_${Date.now()}`,
+          name: user.name,
+          email: user.email,
+          picture: user.picture,
+          access_token: accessToken
+        });
+      } catch (storeError) {
+        console.error("Error storing user in Supabase:", storeError);
+        // Continue even if storage fails
+      }
+      
+      // Save the session locally
+      saveSession(accessToken, user);
+      
+      // Show success toast
+      this.toastFunction({
+        title: "Successfully connected",
+        description: `Welcome, ${user.name}! Your YouTube account is now connected.`,
+        variant: "default",
+      });
+      
+      return {
+        isSignedIn: true,
+        accessToken,
+        user
+      };
     } catch (error) {
+      console.error('Auth error in handleAuthSuccess:', error);
       clearSession();
       throw error;
     }
   }
 
-  private async fetchUserWithRetry(accessToken: string, maxRetries = 3): Promise<any> {
+  private async fetchUserWithRetry(accessToken: string, maxRetries = 2): Promise<any> {
+    let attempt = 0;
     let lastError = null;
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    while (attempt <= maxRetries) {
       try {
-        if (attempt > 1) {
-          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+        console.log(`Fetching user profile attempt ${attempt + 1}/${maxRetries + 1}`);
+        
+        if (attempt > 0) {
+          // Wait longer between retries
+          await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
         }
         
         const user = await fetchUserProfile(accessToken);
-        if (user) return user;
+        if (user) {
+          console.log('Successfully fetched user profile on attempt', attempt + 1);
+          return user;
+        }
       } catch (err) {
         lastError = err;
+        console.error(`Error on attempt ${attempt + 1}:`, err);
+        
+        // Don't retry if token is invalid
         if (err instanceof Error && 
             (err.message.includes('Token rejected') || 
-             err.message.includes('Invalid or expired access token'))) {
+             err.message.includes('Invalid or expired'))) {
           break;
         }
       }
+      
+      attempt++;
     }
     
     if (lastError) throw lastError;

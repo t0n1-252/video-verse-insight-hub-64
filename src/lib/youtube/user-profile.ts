@@ -14,7 +14,6 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
   }
   
   console.log(`Attempting to fetch user profile with token length: ${accessToken.length}`);
-  console.log(`Token first/last 10 chars: ${accessToken.substring(0, 10)}...${accessToken.substring(accessToken.length - 10)}`);
   
   // First validate the token before attempting to use it
   console.log('Validating token before use...');
@@ -23,13 +22,13 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
   
   if (!tokenStatus.isValid) {
     console.error('Token validation failed:', tokenStatus.details);
-    throw new Error(`Invalid or expired access token: ${tokenStatus.details}`);
+    throw new Error(`Token rejected by Google: ${tokenStatus.details}`);
   }
   
   try {
     console.log('Token validation passed, fetching user profile');
     
-    // Use Google's userinfo endpoint directly - no GAPI dependency
+    // Use Google's userinfo endpoint directly
     const apiUrl = 'https://www.googleapis.com/oauth2/v2/userinfo';
     console.log(`Fetching user profile from: ${apiUrl}`);
     
@@ -37,9 +36,9 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json'
-      },
-      cache: 'no-store'
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store'
+      }
     });
     
     if (!response.ok) {
@@ -48,21 +47,17 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
       
       let errorText = '';
       try {
-        const errorData = await response.text();
-        errorText = errorData;
+        errorText = await response.text();
         console.error('Error response:', errorText);
       } catch (e) {
         console.error('Could not read error response:', e);
       }
       
       if (status === 401) {
-        console.error('401 Unauthorized: Token has been rejected by Google API');
         throw new Error('Token rejected by Google: Please sign in again');
       } else if (status === 403) {
-        console.error('403 Forbidden: Insufficient permissions');
         throw new Error('Insufficient permissions to access your profile');
       } else {
-        console.error(`HTTP Error ${status}: Unexpected error`);
         throw new Error(`Error fetching profile: ${errorText || `HTTP ${status}`}`);
       }
     }
@@ -74,6 +69,11 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
     if (!data || !data.name) {
       console.error('Invalid profile data format:', data);
       throw new Error('Received invalid profile data format');
+    }
+    
+    // Store email for future sign-in hints
+    if (data.email) {
+      localStorage.setItem('youtube_email', data.email);
     }
     
     // Return normalized user profile

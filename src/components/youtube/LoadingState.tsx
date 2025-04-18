@@ -1,11 +1,15 @@
 
-import { ThreeDotsFade } from 'react-svg-spinners';
+import { Spinner } from "@/components/ui/spinner";
 
-const LoadingState = () => {
+interface LoadingStateProps {
+  message?: string;
+}
+
+const LoadingState = ({ message = "Loading..." }: LoadingStateProps) => {
   return (
-    <div className="flex flex-col items-center p-6 space-y-4">
-      <ThreeDotsFade color="#3b82f6" height={24} />
-      <p className="text-gray-400">Initializing YouTube API...</p>
+    <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <Spinner className="h-8 w-8 border-t-2 mb-4" />
+      <p className="text-gray-400">{message}</p>
     </div>
   );
 };

@@ -20,14 +20,33 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   // If login is successful, call the callback
   useEffect(() => {
     if (isSignedIn && user && onLoginSuccess) {
+      console.log("Login successful, calling onLoginSuccess callback");
       onLoginSuccess();
     }
   }, [isSignedIn, user, onLoginSuccess]);
 
+  // Reset signing in state if auth state changes
+  useEffect(() => {
+    if (isSignedIn || profileFetchError) {
+      setSigningIn(false);
+    }
+  }, [isSignedIn, profileFetchError]);
+
+  // Initialize authError from profile fetch error
+  useEffect(() => {
+    if (profileFetchError && !authError) {
+      setAuthError(profileFetchError);
+    }
+  }, [profileFetchError]);
+
   const handleAuth = async () => {
     if (isSignedIn) {
       console.log("Signing out");
-      await signOut();
+      try {
+        await signOut();
+      } catch (error) {
+        console.error("Sign out error:", error);
+      }
     } else {
       try {
         console.log("Attempting to sign in");
@@ -49,6 +68,8 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
 
   const handleRetry = async () => {
     setRetryCount(prev => prev + 1);
+    setAuthError(null);
+    
     if (retryCount >= 2) {
       // After multiple retries, try a more thorough reset
       handleClearAndRetry();
@@ -58,9 +79,12 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   };
 
   const handleClearAndRetry = () => {
+    console.log("Performing thorough reset of authentication state");
+    
     // Clear all possible auth-related storage
     localStorage.removeItem('youtube_access_token');
     localStorage.removeItem('youtube_user');
+    localStorage.removeItem('youtube_email');
     sessionStorage.removeItem('youtube_token_timestamp');
     
     // Clear any Google cookies that might be causing issues
@@ -91,7 +115,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   };
 
   if (isInitializing) {
-    return <LoadingState />;
+    return <LoadingState message="Initializing YouTube connection..." />;
   }
   
   if (!credentialsConfigured) {

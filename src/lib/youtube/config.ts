@@ -1,4 +1,3 @@
-
 // YouTube API OAuth 2.0 credentials and configuration
 
 // API Key (keep as empty string since it's not used in OAuth flow)
@@ -10,8 +9,14 @@ export const CLIENT_ID = '474426272719-dvcb1cbcdbc152eaaugavjs7bc87hkfk.apps.goo
 // Client Secret from Google Cloud Console
 export const CLIENT_SECRET = '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';
 
+// Scopes needed for the application
+export const SCOPES = [
+  'https://www.googleapis.com/auth/youtube.readonly',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
+  'https://www.googleapis.com/auth/youtube'
+];
+
 // Use the full origin (domain) as the redirect URI without the path
-// This is simpler and more reliable for OAuth flows
 export const REDIRECT_URI = window.location.origin;
 
 // Log the redirect URI for debugging purposes
@@ -21,14 +26,6 @@ console.log('Full window location:', {
   pathname: window.location.pathname,
   href: window.location.href
 });
-
-// Scopes needed for the application
-// Added "https://www.googleapis.com/auth/youtube" to ensure we have full access
-export const SCOPES = [
-  'https://www.googleapis.com/auth/youtube.readonly',
-  'https://www.googleapis.com/auth/youtube.force-ssl',
-  'https://www.googleapis.com/auth/youtube'
-];
 
 // Initial auth state
 export const initialAuthState = {
@@ -50,18 +47,16 @@ export const checkTokenValidity = async (accessToken: string): Promise<{isValid:
   
   try {
     console.log(`Validating token with length: ${accessToken.length}`);
-    console.log(`Token validation check (first 10 chars): ${accessToken.substring(0, 10)}...`);
-    console.log('Current path during token validation:', window.location.pathname);
     
-    // Try a direct approach using userinfo endpoint - often more reliable than tokeninfo
+    // First try the userinfo endpoint (more reliable)
     try {
       const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
-        },
-        cache: 'no-store'
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache, no-store'
+        }
       });
       
       if (response.ok) {
@@ -69,7 +64,14 @@ export const checkTokenValidity = async (accessToken: string): Promise<{isValid:
         return { isValid: true, details: 'Token valid - verified with userinfo endpoint' };
       }
       
-      // If userinfo fails, try tokeninfo as fallback
+      // Get error details
+      const errorText = await response.text();
+      console.error('Userinfo validation error:', response.status, errorText);
+      
+      if (response.status === 401) {
+        return { isValid: false, details: 'Token has been revoked or expired' };
+      }
+      
       console.log('Userinfo validation failed, trying tokeninfo endpoint');
     } catch (e) {
       console.error('Error during userinfo validation:', e);
@@ -81,11 +83,11 @@ export const checkTokenValidity = async (accessToken: string): Promise<{isValid:
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-      },
-      cache: 'no-store'
+        'Cache-Control': 'no-cache, no-store'
+      }
     });
     
-    // Handle HTTP errors first
+    // Handle HTTP errors
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Token validation HTTP error:', response.status, errorText);
@@ -99,11 +101,11 @@ export const checkTokenValidity = async (accessToken: string): Promise<{isValid:
       }
     }
     
-    // Parse the response if HTTP status is ok
+    // Parse the response
     const data = await response.json();
     console.log('Token validation response:', data);
     
-    // Check for explicit errors in the response body
+    // Check for explicit errors
     if (data.error) {
       console.error('Token validation returned error:', data.error);
       return { 
@@ -115,8 +117,6 @@ export const checkTokenValidity = async (accessToken: string): Promise<{isValid:
     // For valid tokens, verify it's for our application
     if (data.audience || data.azp) {
       const tokenClientId = data.audience || data.azp;
-      console.log('Token audience:', tokenClientId);
-      console.log('Our client ID:', CLIENT_ID);
       
       if (tokenClientId === CLIENT_ID) {
         console.log('Token is valid for our application');
