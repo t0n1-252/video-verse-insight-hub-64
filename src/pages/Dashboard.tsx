@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ const MOCK_VIDEOS = [
   {
     id: "video1",
     title: "How to Build a React App in 10 Minutes",
-    thumbnail: "https://i.imgur.com/JvYeG1Z.jpg",
+    thumbnail: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=800&auto=format&fit=crop",
     publishDate: "2023-12-15",
     viewCount: 45231,
     commentCount: 378,
@@ -21,7 +22,7 @@ const MOCK_VIDEOS = [
   {
     id: "video2",
     title: "Advanced TypeScript Tips for Developers",
-    thumbnail: "https://i.imgur.com/Nbgends.jpg",
+    thumbnail: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&auto=format&fit=crop",
     publishDate: "2024-01-22",
     viewCount: 32182,
     commentCount: 256,
@@ -31,7 +32,7 @@ const MOCK_VIDEOS = [
   {
     id: "video3",
     title: "Creating Custom Hooks in React",
-    thumbnail: "https://i.imgur.com/6Hlfxkg.jpg",
+    thumbnail: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop",
     publishDate: "2024-02-05",
     viewCount: 28933,
     commentCount: 194,
@@ -41,7 +42,7 @@ const MOCK_VIDEOS = [
   {
     id: "video4",
     title: "State Management with Redux Toolkit",
-    thumbnail: "https://i.imgur.com/H7nT2Y5.jpg",
+    thumbnail: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=800&auto=format&fit=crop",
     publishDate: "2024-03-10",
     viewCount: 19845,
     commentCount: 132,
