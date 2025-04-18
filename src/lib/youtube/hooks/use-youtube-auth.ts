@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthState } from '../types';
@@ -46,6 +47,11 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
+      script.onerror = (e) => {
+        console.error('Failed to load Google Identity Services script', e);
+        setProfileFetchError('Failed to load authentication service');
+        setIsInitializing(false);
+      };
       
       script.onload = () => {
         console.log('Google Identity Services script loaded');
@@ -59,12 +65,6 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
             setProfileFetchError('Authentication service failed to initialize');
           }
         }, 1000);
-      };
-      
-      script.onerror = (e) => {
-        console.error('Failed to load Google Identity Services script', e);
-        setProfileFetchError('Failed to load authentication service');
-        setIsInitializing(false);
       };
       
       document.body.appendChild(script);
@@ -196,6 +196,7 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
     try {
       const token = localStorage.getItem('youtube_access_token');
       
+      // Clear all session data immediately
       clearSession();
       setAuthState({ isSignedIn: false, accessToken: null, user: null });
       setProfileFetchError(null);
@@ -204,15 +205,11 @@ export const useYouTubeAuth = (): YouTubeAuthHookResult => {
         window.gapi.client.setToken(null);
       }
       
-      // Fixed: Use the correct method to revoke token
-      if (window.google?.accounts?.oauth2) {
-        console.log('Attempting to revoke token via Google OAuth server');
-      }
-
-      // Server-side revocation (this is the correct way to revoke tokens)
+      // Server-side revocation (correct way to revoke tokens)
       if (token) {
         try {
-          await fetch(`https://oauth2.googleapis.com/revoke?token=${token}`, {
+          console.log('Attempting to revoke token via Google OAuth server');
+          await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
           });

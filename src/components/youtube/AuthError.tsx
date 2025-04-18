@@ -15,8 +15,8 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
   
   // Format the error message to be more user-friendly
   const getUserFriendlyError = (error: string) => {
-    if (error.includes('Token rejected')) {
-      return "Your authentication token was rejected. This usually happens when a token expires or when there are permission issues.";
+    if (error.includes('Token rejected') || error.includes('Token has been revoked or expired')) {
+      return "Your authentication token was rejected or has expired. Please sign in again.";
     }
     
     if (error.includes('Token client not initialized')) {
@@ -45,11 +45,12 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
   const getSuggestedFixes = () => {
     if (isTokenError) {
       return [
-        "Clear your browser cookies for this site",
+        "Clear your browser cookies for this site and Google domains",
         "Try using an incognito/private browsing window",
-        "Ensure you have the correct permissions in your Google account",
-        "Check that your Google Cloud Console project has YouTube API enabled",
-        "Verify that your OAuth consent screen is properly configured"
+        "Make sure you're using the latest credentials in your app",
+        "Verify that your Google Cloud Console project has YouTube API enabled",
+        "Check that your OAuth consent screen is properly configured",
+        "Ensure the redirect URI in Google Cloud Console matches this site exactly"
       ];
     }
     
