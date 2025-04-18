@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -169,42 +170,42 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
           <TabsTrigger value="priority" className="data-[state=active]:bg-gray-700">
             <Flag className="w-4 h-4 mr-2" />
             Priority Comments
-            <Badge variant="secondary" className="ml-2 bg-purple-500/20 text-purple-400">{priorityComments.length}</Badge>
+            <Badge variant="secondary" className="ml-2 bg-purple-500/30 text-purple-200">{priorityComments.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="hot-leads" className="data-[state=active]:bg-gray-700">
             <Flame className="w-4 h-4 mr-2" />
             Hot Leads
-            <Badge variant="secondary" className="ml-2 bg-red-500/20 text-red-400">{hotLeads.length}</Badge>
+            <Badge variant="secondary" className="ml-2 bg-red-500/30 text-red-200">{hotLeads.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="most-liked" className="data-[state=active]:bg-gray-700">
             <ThumbsUp className="w-4 h-4 mr-2" />
             Most Liked
-            <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-400">{mostLiked.length}</Badge>
+            <Badge variant="secondary" className="ml-2 bg-blue-500/30 text-blue-200">{mostLiked.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="most-engaged" className="data-[state=active]:bg-gray-700">
             <Activity className="w-4 h-4 mr-2" />
             Most Engagement
-            <Badge variant="secondary" className="ml-2 bg-amber-500/20 text-amber-400">{mostEngaged.length}</Badge>
+            <Badge variant="secondary" className="ml-2 bg-amber-500/30 text-amber-200">{mostEngaged.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="questions" className="data-[state=active]:bg-gray-700">
             <HelpCircle className="w-4 h-4 mr-2" />
             Questions
-            <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-400">{questions.length}</Badge>
+            <Badge variant="secondary" className="ml-2 bg-blue-500/30 text-blue-200">{questions.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="testimonials" className="data-[state=active]:bg-gray-700">
             <MessageSquare className="w-4 h-4 mr-2" />
             Testimonials
-            <Badge variant="secondary" className="ml-2 bg-green-500/20 text-green-400">{testimonials.length}</Badge>
+            <Badge variant="secondary" className="ml-2 bg-green-500/30 text-green-200">{testimonials.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="complaints" className="data-[state=active]:bg-gray-700">
             <AlertCircle className="w-4 h-4 mr-2" />
             Complaints
-            <Badge variant="secondary" className="ml-2 bg-amber-500/20 text-amber-400">{complaints.length}</Badge>
+            <Badge variant="secondary" className="ml-2 bg-amber-500/30 text-amber-200">{complaints.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="neutral" className="data-[state=active]:bg-gray-700">
             <CircleDot className="w-4 h-4 mr-2" />
             Neutral
-            <Badge variant="secondary" className="ml-2 bg-gray-500/20 text-gray-400">{neutral.length}</Badge>
+            <Badge variant="secondary" className="ml-2 bg-gray-500/30 text-gray-200">{neutral.length}</Badge>
           </TabsTrigger>
         </TabsList>
 
