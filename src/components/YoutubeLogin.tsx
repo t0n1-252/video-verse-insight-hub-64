@@ -1,6 +1,6 @@
 
 import { useYouTubeAuth } from '@/lib/youtube-auth';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import LoadingState from './youtube/LoadingState';
 import CredentialsError from './youtube/CredentialsError';
 import AuthError from './youtube/AuthError';
@@ -15,6 +15,14 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
   const { isSignedIn, isInitializing, user, credentialsConfigured, profileFetchError, signIn, signOut } = useYouTubeAuth();
   const [signingIn, setSigningIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // If login is successful, call the callback
+  useEffect(() => {
+    if (isSignedIn && user && onLoginSuccess) {
+      onLoginSuccess();
+    }
+  }, [isSignedIn, user, onLoginSuccess]);
 
   const handleAuth = async () => {
     if (isSignedIn) {
@@ -39,19 +47,47 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     }
   };
 
+  const handleRetry = async () => {
+    setRetryCount(prev => prev + 1);
+    if (retryCount >= 2) {
+      // After multiple retries, try a more thorough reset
+      handleClearAndRetry();
+    } else {
+      handleAuth();
+    }
+  };
+
   const handleClearAndRetry = () => {
+    // Clear all possible auth-related storage
     localStorage.removeItem('youtube_access_token');
     localStorage.removeItem('youtube_user');
     sessionStorage.removeItem('youtube_token_timestamp');
     
+    // Clear any Google cookies that might be causing issues
     document.cookie.split(';').forEach(c => {
-      if (c.trim().startsWith('g_')) {
-        const cookieName = c.split('=')[0];
+      const cookieName = c.split('=')[0].trim();
+      if (cookieName.startsWith('g_') || cookieName.includes('google')) {
         document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
       }
     });
     
-    window.location.reload();
+    // Remove script tags to force fresh loading
+    const scriptTags = document.querySelectorAll('script[id^="google-"]');
+    scriptTags.forEach(tag => {
+      if (tag.parentNode) {
+        tag.parentNode.removeChild(tag);
+      }
+    });
+    
+    // Reset error states
+    setAuthError(null);
+    setSigningIn(false);
+    setRetryCount(0);
+    
+    // Reload the page after a short delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
   };
 
   if (isInitializing) {
@@ -67,7 +103,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     return (
       <AuthError 
         error={errorToDisplay}
-        onRetry={handleAuth}
+        onRetry={handleRetry}
         onClearAndRetry={handleClearAndRetry}
       />
     );

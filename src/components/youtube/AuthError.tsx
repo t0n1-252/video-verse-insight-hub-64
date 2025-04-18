@@ -12,21 +12,48 @@ interface AuthErrorProps {
 
 const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  
+  // Format the error message to be more user-friendly
+  const getUserFriendlyError = (error: string) => {
+    if (error.includes('Token client not initialized')) {
+      return "Authentication service not ready. This might be due to a browser extension blocking Google services or a temporary connectivity issue.";
+    }
+    
+    if (error.includes('Failed to initialize')) {
+      return "Failed to initialize the authentication service. This might be a temporary issue.";
+    }
+    
+    if (error.includes('popup')) {
+      return "Authentication popup was blocked or closed. Please allow popups for this site and try again.";
+    }
+    
+    if (error.includes('redirect_uri_mismatch')) {
+      return "Authentication configuration error: Redirect URI mismatch. Please check your Google Cloud Console settings.";
+    }
+    
+    return error;
+  };
 
   return (
     <div className="flex flex-col items-center justify-center p-10 space-y-6">
       <Alert variant="destructive" className="mb-4">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Authentication Problem</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
+        <AlertDescription>{getUserFriendlyError(error)}</AlertDescription>
       </Alert>
       
       <div className="text-center space-y-4">
         <AlertCircle size={40} className="mx-auto text-red-500" />
         <h2 className="text-xl font-bold text-gray-100">Authentication Problem</h2>
         <p className="text-gray-400 max-w-md">
-          We encountered an issue with the YouTube authentication. Please try again.
+          We encountered an issue with the YouTube authentication. Here are some things you can try:
         </p>
+        <ul className="text-left text-gray-400 max-w-md list-disc pl-5 space-y-2">
+          <li>Check if you have any browser extensions that might be blocking Google services</li>
+          <li>Try using a different browser</li>
+          <li>Ensure you're allowing popups for this site</li>
+          <li>Make sure you're connected to the internet</li>
+        </ul>
         
         <div className="text-sm text-gray-500 mt-4 p-2 bg-gray-800 rounded-md">
           <div className="flex justify-between items-center">
@@ -41,6 +68,12 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
               {showDebugInfo ? 'Hide Debug' : 'Show Debug'}
             </Button>
           </div>
+          
+          {showDebugInfo && (
+            <div className="mt-2 p-2 bg-gray-900 rounded text-xs">
+              <p className="font-mono break-all">{error}</p>
+            </div>
+          )}
         </div>
       </div>
       
