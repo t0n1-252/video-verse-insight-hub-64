@@ -1,5 +1,5 @@
 
-import { AlertCircle, Info, RefreshCw } from 'lucide-react';
+import { AlertCircle, Info, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState } from 'react';
@@ -8,9 +8,10 @@ interface AuthErrorProps {
   error: string;
   onRetry: () => void;
   onClearAndRetry: () => void;
+  onForceReset: () => void;
 }
 
-const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
+const AuthError = ({ error, onRetry, onClearAndRetry, onForceReset }: AuthErrorProps) => {
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   
   // Format the error message to be more user-friendly
@@ -45,16 +46,16 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
   const getSuggestedFixes = () => {
     if (isTokenError) {
       return [
-        "Clear your browser cookies for this site and Google domains",
+        "Use the 'Complete Reset' button below to clear all authentication data",
         "Try using an incognito/private browsing window",
-        "Make sure you're using the latest credentials in your app",
-        "Verify that your Google Cloud Console project has YouTube API enabled",
-        "Check that your OAuth consent screen is properly configured",
-        "Ensure the redirect URI in Google Cloud Console matches this site exactly"
+        "Ensure you're using a browser without extensions that might interfere",
+        "Verify your Google Cloud Console project has YouTube API enabled",
+        "Check that the correct redirect URL is set in Google Cloud Console"
       ];
     }
     
     return [
+      "Try the 'Complete Reset' button at the bottom to fix most issues",
       "Check if you have any browser extensions that might be blocking Google services",
       "Try using a different browser",
       "Ensure you're allowing popups for this site",
@@ -104,12 +105,13 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
               <p className="font-mono break-all">{error}</p>
               <p className="mt-2">Browser: {navigator.userAgent}</p>
               <p>Timestamp: {new Date().toISOString()}</p>
+              <p>Page URL: {window.location.href}</p>
             </div>
           )}
         </div>
       </div>
       
-      <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+      <div className="flex flex-col space-y-4 w-full max-w-md">
         <Button
           className="bg-blue-600 hover:bg-blue-700 text-white"
           onClick={onRetry}
@@ -123,6 +125,15 @@ const AuthError = ({ error, onRetry, onClearAndRetry }: AuthErrorProps) => {
           onClick={onClearAndRetry}
         >
           Clear Cache & Reload
+        </Button>
+        
+        <Button
+          variant="destructive"
+          className="mt-4"
+          onClick={onForceReset}
+        >
+          <AlertTriangle className="mr-2 h-5 w-5" />
+          Complete Reset (Recommended)
         </Button>
       </div>
     </div>

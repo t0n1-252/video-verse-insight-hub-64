@@ -15,30 +15,25 @@ export const fetchUserProfile = async (accessToken: string): Promise<{
   
   console.log(`Attempting to fetch user profile with token length: ${accessToken.length}`);
   
-  // First validate the token before attempting to use it
-  console.log('Validating token before use...');
-  const tokenStatus = await checkTokenValidity(accessToken);
-  console.log('Token validation result:', tokenStatus);
-  
-  if (!tokenStatus.isValid) {
-    console.error('Token validation failed:', tokenStatus.details);
-    throw new Error(`Token rejected by Google: ${tokenStatus.details}`);
-  }
-  
   try {
-    console.log('Token validation passed, fetching user profile');
+    console.log('Fetching user profile directly');
     
     // Use Google's userinfo endpoint directly
     const apiUrl = 'https://www.googleapis.com/oauth2/v2/userinfo';
     console.log(`Fetching user profile from: ${apiUrl}`);
     
-    const response = await fetch(apiUrl, {
+    // Add cache-busting parameter
+    const cacheBuster = `?_=${Date.now()}`;
+    
+    const response = await fetch(apiUrl + cacheBuster, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store'
-      }
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-store'
     });
     
     if (!response.ok) {

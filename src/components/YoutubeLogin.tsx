@@ -13,7 +13,15 @@ interface YoutubeLoginProps {
 }
 
 const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
-  const { isSignedIn, isInitializing, user, credentialsConfigured, profileFetchError, signIn, signOut } = useYouTubeAuth();
+  const { 
+    isSignedIn, 
+    isInitializing, 
+    user, 
+    credentialsConfigured, 
+    profileFetchError, 
+    signIn, 
+    signOut 
+  } = useYouTubeAuth();
   const [signingIn, setSigningIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -45,8 +53,12 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
       console.log("Signing out");
       try {
         await signOut();
+        // Force clear after signout
+        clearSession();
       } catch (error) {
         console.error("Sign out error:", error);
+        // Even if sign out fails, clear the session
+        clearSession();
       }
     } else {
       try {
@@ -75,7 +87,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     setRetryCount(prev => prev + 1);
     setAuthError(null);
     
-    if (retryCount >= 2) {
+    if (retryCount >= 1) { // Reduce the retry count before clearing
       // After multiple retries, try a more thorough reset
       handleClearAndRetry();
     } else {
@@ -108,6 +120,54 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
     }, 300);
   };
 
+  const handleForceReset = () => {
+    console.log("Force resetting entire auth state");
+    
+    clearSession();
+    
+    // Remove ALL Google-related scripts
+    const allScripts = document.querySelectorAll('script');
+    allScripts.forEach(script => {
+      const src = script.getAttribute('src') || '';
+      if (src.includes('google') || src.includes('gstatic') || 
+          script.id?.includes('google') || script.id?.includes('gapi')) {
+        console.log(`Removing script: ${script.id || src}`);
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+      }
+    });
+    
+    // Clear any Google API object in memory
+    if (window.google) {
+      try {
+        // @ts-ignore - deliberately removing google object
+        window.google = undefined;
+      } catch (e) {
+        console.error("Failed to clear google object:", e);
+      }
+    }
+    if (window.gapi) {
+      try {
+        // @ts-ignore - deliberately removing gapi object
+        window.gapi = undefined;
+      } catch (e) {
+        console.error("Failed to clear gapi object:", e);
+      }
+    }
+    
+    // Reset everything
+    setAuthError(null);
+    setSigningIn(false);
+    setRetryCount(0);
+    
+    // Force hard reload (skips cache)
+    setTimeout(() => {
+      window.location.href = window.location.href.split('?')[0] + 
+                           '?forceClear=' + Date.now();
+    }, 300);
+  };
+
   if (isInitializing) {
     return <LoadingState message="Initializing YouTube connection..." />;
   }
@@ -123,6 +183,7 @@ const YoutubeLogin = ({ onLoginSuccess }: YoutubeLoginProps) => {
         error={errorToDisplay}
         onRetry={handleRetry}
         onClearAndRetry={handleClearAndRetry}
+        onForceReset={handleForceReset}
       />
     );
   }

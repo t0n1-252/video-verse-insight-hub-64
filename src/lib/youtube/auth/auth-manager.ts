@@ -17,13 +17,9 @@ export class YouTubeAuthManager {
     console.log('Authentication successful, token received with length:', accessToken.length);
     
     try {
-      // First, validate the token
-      const tokenStatus = await checkTokenValidity(accessToken);
-      if (!tokenStatus.isValid) {
-        throw new Error(`Invalid token: ${tokenStatus.details}`);
-      }
-      
-      // Then fetch the user profile
+      // Skip token validation and go straight to profile fetch
+      // Google's APIs will reject invalid tokens anyway
+      // This avoids double validation that might be causing issues
       let user = await this.fetchUserWithRetry(accessToken);
       if (!user) {
         throw new Error('Failed to fetch user profile');
