@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -75,64 +74,54 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center mb-6">
-        <ArrowLeft className="mr-2 cursor-pointer" onClick={() => window.history.back()} />
-        <h2 className="text-2xl font-bold">{video.title}</h2>
+        <ArrowLeft className="mr-2 cursor-pointer text-gray-400 hover:text-gray-200" onClick={() => window.history.back()} />
+        <h2 className="text-2xl font-bold text-gray-100">{video.title}</h2>
       </div>
 
-      <VideoInfoCards 
-        questionsCount={questions.length}
-        complaintsCount={complaints.length}
-        opportunitiesCount={opportunities.length}
-      />
-
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <ThreeDotsFade color="#3b82f6" height={40} />
-          <p className="mt-4 text-gray-400">Analyzing comments...</p>
-        </div>
-      ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-gray-800 border-gray-700">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-gray-700">Overview</TabsTrigger>
-            <TabsTrigger value="comments" className="data-[state=active]:bg-gray-700">All Comments</TabsTrigger>
-            <TabsTrigger value="questions" className="data-[state=active]:bg-gray-700">
-              Questions
-              <Badge className="ml-2 bg-blue-500">{questions.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="complaints" className="data-[state=active]:bg-gray-700">
-              Complaints
-              <Badge className="ml-2 bg-amber-500">{complaints.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="opportunities" className="data-[state=active]:bg-gray-700">
-              Content Opportunities
-            </TabsTrigger>
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="bg-gray-800 border-gray-700">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-gray-700">Overview</TabsTrigger>
+          <TabsTrigger value="comments" className="data-[state=active]:bg-gray-700">
+            All Comments
+            <Badge variant="secondary" className="ml-2 bg-gray-700">{comments.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="questions" className="data-[state=active]:bg-gray-700">
+            Questions
+            <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-400">{questions.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="complaints" className="data-[state=active]:bg-gray-700">
+            Complaints
+            <Badge variant="secondary" className="ml-2 bg-amber-500/20 text-amber-400">{complaints.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="opportunities" className="data-[state=active]:bg-gray-700">
+            Content Opportunities
           </TabsList>
 
-          <TabsContent value="overview">
-            <VideoOverviewTab 
-              sentiment={sentiment}
-              priorityComments={priorityComments}
-              onViewAllComments={() => setActiveTab("comments")}
-            />
-          </TabsContent>
+        <TabsContent value="overview" className="mt-6">
+          <VideoOverviewTab 
+            video={video}
+            sentiment={sentiment}
+            priorityComments={priorityComments}
+            onViewAllComments={() => setActiveTab("comments")}
+          />
+        </TabsContent>
 
-          <TabsContent value="comments">
-            <CommentList comments={comments} />
-          </TabsContent>
+        <TabsContent value="comments">
+          <CommentList comments={comments} />
+        </TabsContent>
 
-          <TabsContent value="questions">
-            <CommentList comments={questions} />
-          </TabsContent>
+        <TabsContent value="questions">
+          <CommentList comments={questions} />
+        </TabsContent>
 
-          <TabsContent value="complaints">
-            <CommentList comments={complaints} />
-          </TabsContent>
+        <TabsContent value="complaints">
+          <CommentList comments={complaints} />
+        </TabsContent>
 
-          <TabsContent value="opportunities">
-            <ContentOpportunities opportunities={opportunities} />
-          </TabsContent>
-        </Tabs>
-      )}
+        <TabsContent value="opportunities">
+          <ContentOpportunities opportunities={opportunities} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
