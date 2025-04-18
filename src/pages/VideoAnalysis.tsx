@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -67,9 +66,9 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
   const priorityComments = comments.filter(comment => comment.isPriority);
   const hotLeads = comments.filter(comment => comment.isPriority && comment.isQuestion);
   const mostLiked = [...comments].sort((a, b) => b.likes - a.likes).slice(0, 10);
-  // Fix: Use a property that exists on our Comment type for sorting engagement
   const mostEngaged = [...comments].sort((a, b) => b.likes - a.likes).slice(0, 10);
   const questions = comments.filter(comment => comment.isQuestion);
+  const testimonials = comments.filter(comment => !comment.isComplaint && !comment.isQuestion && comment.sentiment === 'positive');
   const complaints = comments.filter(comment => comment.isComplaint);
 
   return (
@@ -133,6 +132,11 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
             Questions
             <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-400">{questions.length}</Badge>
           </TabsTrigger>
+          <TabsTrigger value="testimonials" className="data-[state=active]:bg-gray-700">
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Testimonials
+            <Badge variant="secondary" className="ml-2 bg-green-500/20 text-green-400">{testimonials.length}</Badge>
+          </TabsTrigger>
           <TabsTrigger value="complaints" className="data-[state=active]:bg-gray-700">
             <AlertCircle className="w-4 h-4 mr-2" />
             Complaints
@@ -158,6 +162,10 @@ const VideoAnalysis = ({ video: propVideo }: VideoAnalysisProps) => {
 
         <TabsContent value="questions">
           <CommentList comments={questions} />
+        </TabsContent>
+
+        <TabsContent value="testimonials">
+          <CommentList comments={testimonials} />
         </TabsContent>
 
         <TabsContent value="complaints">
